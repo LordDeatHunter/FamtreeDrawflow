@@ -48,6 +48,17 @@ export default class Drawflow {
     // Mobile
     this.evCache = new Array();
     this.prevDiff = -1;
+
+    this.clickActions = {
+      'drawflow-node': [this.onDrawflowNodeClick],
+      'output': [this.onOutputClick],
+      'input': [],
+      'parent-drawflow': [this.onDrawflowClick],
+      'drawflow': [this.onDrawflowClick],
+      'main-path': [this.onMainPathClick],
+      'point': [this.onPointClick],
+      'drawflow-delete': [this.onDrawflowDeleteClick],
+    }
   }
 
   start () {
@@ -173,6 +184,113 @@ export default class Drawflow {
     }
   }
 
+  onDrawflowNodeClick(e){
+    if(this.node_selected != null) {
+      this.node_selected.classList.remove("selected");
+      if(this.node_selected != this.ele_selected) {
+        this.dispatch('nodeUnselected', true);
+      }
+    }
+    if(this.connection_selected != null) {
+      this.connection_selected.classList.remove("selected");
+      this.removeReouteConnectionSelected();
+      this.connection_selected = null;
+    }
+    if(this.node_selected != this.ele_selected) {
+      this.dispatch('nodeSelected', this.ele_selected.id.slice(5));
+    }
+    this.node_selected = this.ele_selected;
+    this.node_selected.classList.add("selected");
+    if(!this.draggable_inputs) {
+      if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT' && e.target.hasAttribute('contenteditable') !== true) {
+        this.drag = true;
+      }
+    } else {
+      if(e.target.tagName !== 'SELECT') {
+        this.drag = true;
+      }
+    }
+  }
+
+  onOutputClick(e) {
+    this.connection = true;
+    if(this.node_selected != null) {
+      this.node_selected.classList.remove("selected");
+      this.node_selected = null;
+      this.dispatch('nodeUnselected', true);
+    }
+    if(this.connection_selected != null) {
+      this.connection_selected.classList.remove("selected");
+      this.removeReouteConnectionSelected();
+      this.connection_selected = null;
+    }
+    this.drawConnection(e.target);
+  }
+
+  onDrawflowClick(e){
+    if(this.node_selected != null) {
+      this.node_selected.classList.remove("selected");
+      this.node_selected = null;
+      this.dispatch('nodeUnselected', true);
+    }
+    if(this.connection_selected != null) {
+      this.connection_selected.classList.remove("selected");
+      this.removeReouteConnectionSelected();
+      this.connection_selected = null;
+    }
+    this.editor_selected = true;
+  }
+
+  onMainPathClick(e){
+    if(this.node_selected != null) {
+      this.node_selected.classList.remove("selected");
+      this.node_selected = null;
+      this.dispatch('nodeUnselected', true);
+    }
+    if(this.connection_selected != null) {
+      this.connection_selected.classList.remove("selected");
+      this.removeReouteConnectionSelected();
+      this.connection_selected = null;
+    }
+    this.connection_selected = this.ele_selected;
+    this.connection_selected.classList.add("selected");
+    const listclassConnection = this.connection_selected.parentElement.classList;
+    if(listclassConnection.length > 1){
+      this.dispatch('connectionSelected', { output_id: listclassConnection[2].slice(14), input_id: listclassConnection[1].slice(13), output_class: listclassConnection[3], input_class: listclassConnection[4] });
+      if(this.reroute_fix_curvature) {
+        this.connection_selected.parentElement.querySelectorAll(".main-path").forEach((item, i) => {
+          item.classList.add("selected");
+        });
+      }
+    }
+  }
+
+  onPointClick(e){
+    this.drag_point = true;
+    this.ele_selected.classList.add("selected");
+  }
+
+  onDrawflowDeleteClick(e){
+    if(this.node_selected ) {
+      this.removeNodeId(this.node_selected.id);
+    }
+
+    if(this.connection_selected) {
+      this.removeConnection();
+    }
+
+    if(this.node_selected != null) {
+      this.node_selected.classList.remove("selected");
+      this.node_selected = null;
+      this.dispatch('nodeUnselected', true);
+    }
+    if(this.connection_selected != null) {
+      this.connection_selected.classList.remove("selected");
+      this.removeReouteConnectionSelected();
+      this.connection_selected = null;
+    }
+  }
+
   click(e) {
     this.dispatch('click', e);
     if(this.editor_mode === 'fixed') {
@@ -199,124 +317,7 @@ export default class Drawflow {
         this.ele_selected = e.target.closest(".drawflow_content_node").parentElement;
       }
     }
-    switch (this.ele_selected.classList[0]) {
-      case 'drawflow-node':
-        if(this.node_selected != null) {
-          this.node_selected.classList.remove("selected");
-          if(this.node_selected != this.ele_selected) {
-            this.dispatch('nodeUnselected', true);
-          }
-        }
-        if(this.connection_selected != null) {
-          this.connection_selected.classList.remove("selected");
-          this.removeReouteConnectionSelected();
-          this.connection_selected = null;
-        }
-        if(this.node_selected != this.ele_selected) {
-          this.dispatch('nodeSelected', this.ele_selected.id.slice(5));
-        }
-        this.node_selected = this.ele_selected;
-        this.node_selected.classList.add("selected");
-        if(!this.draggable_inputs) {
-          if(e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'SELECT' && e.target.hasAttribute('contenteditable') !== true) {
-            this.drag = true;
-          }
-        } else {
-          if(e.target.tagName !== 'SELECT') {
-            this.drag = true;
-          }
-        }
-        break;
-      case 'output':
-        this.connection = true;
-        if(this.node_selected != null) {
-          this.node_selected.classList.remove("selected");
-          this.node_selected = null;
-          this.dispatch('nodeUnselected', true);
-        }
-        if(this.connection_selected != null) {
-          this.connection_selected.classList.remove("selected");
-          this.removeReouteConnectionSelected();
-          this.connection_selected = null;
-        }
-        this.drawConnection(e.target);
-        break;
-      case 'parent-drawflow':
-        if(this.node_selected != null) {
-          this.node_selected.classList.remove("selected");
-          this.node_selected = null;
-          this.dispatch('nodeUnselected', true);
-        }
-        if(this.connection_selected != null) {
-          this.connection_selected.classList.remove("selected");
-          this.removeReouteConnectionSelected();
-          this.connection_selected = null;
-        }
-        this.editor_selected = true;
-        break;
-      case 'drawflow':
-        if(this.node_selected != null) {
-          this.node_selected.classList.remove("selected");
-          this.node_selected = null;
-          this.dispatch('nodeUnselected', true);
-        }
-        if(this.connection_selected != null) {
-          this.connection_selected.classList.remove("selected");
-          this.removeReouteConnectionSelected();
-          this.connection_selected = null;
-        }
-        this.editor_selected = true;
-        break;
-      case 'main-path':
-        if(this.node_selected != null) {
-          this.node_selected.classList.remove("selected");
-          this.node_selected = null;
-          this.dispatch('nodeUnselected', true);
-        }
-        if(this.connection_selected != null) {
-          this.connection_selected.classList.remove("selected");
-          this.removeReouteConnectionSelected();
-          this.connection_selected = null;
-        }
-        this.connection_selected = this.ele_selected;
-        this.connection_selected.classList.add("selected");
-        const listclassConnection = this.connection_selected.parentElement.classList;
-        if(listclassConnection.length > 1){
-          this.dispatch('connectionSelected', { output_id: listclassConnection[2].slice(14), input_id: listclassConnection[1].slice(13), output_class: listclassConnection[3], input_class: listclassConnection[4] });
-          if(this.reroute_fix_curvature) {
-            this.connection_selected.parentElement.querySelectorAll(".main-path").forEach((item, i) => {
-              item.classList.add("selected");
-            });
-          }
-        }
-      break;
-      case 'point':
-        this.drag_point = true;
-        this.ele_selected.classList.add("selected");
-      break;
-      case 'drawflow-delete':
-        if(this.node_selected ) {
-          this.removeNodeId(this.node_selected.id);
-        }
-
-        if(this.connection_selected) {
-          this.removeConnection();
-        }
-
-        if(this.node_selected != null) {
-          this.node_selected.classList.remove("selected");
-          this.node_selected = null;
-          this.dispatch('nodeUnselected', true);
-        }
-        if(this.connection_selected != null) {
-          this.connection_selected.classList.remove("selected");
-          this.removeReouteConnectionSelected();
-          this.connection_selected = null;
-        }
-
-      break;
-      default:
-    }
+    this.clickActions[this.ele_selected.classList[0]]?.forEach(action => action.bind(this)(e));
     if (e.type === "touchstart") {
       this.pos_x = e.touches[0].clientX;
       this.pos_x_start = e.touches[0].clientX;
