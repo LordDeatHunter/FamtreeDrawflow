@@ -1177,7 +1177,7 @@ export default class Drawflow {
     return nodes;
   }
 
-  addNode (name, num_in, num_out, ele_pos_x, ele_pos_y, classoverride, data, html, typenode = false) {
+  addNode (name, num_in, num_out, ele_pos_x, ele_pos_y, classoverride, data, html, typenode = false, props = null, options = null) {
     if (this.useuuid) {
       var newNodeId = this.getUuid();
     } else {
@@ -1227,7 +1227,7 @@ export default class Drawflow {
     } else {
       if(parseInt(this.render.version) === 3 ) {
         //Vue 3
-        let wrapper = this.render.h(this.noderegister[html].html, this.noderegister[html].props, this.noderegister[html].options);
+        let wrapper = this.render.h(this.noderegister[html].html, props ?? this.noderegister[html].props, options ?? this.noderegister[html].options);
         wrapper.appContext = this.parent;
         this.render.render(wrapper,content);
 

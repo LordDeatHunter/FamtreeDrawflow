@@ -160,8 +160,10 @@ export default class Drawflow {
     posy: number,
     className: string,
     data: any,
-    html: string,
-    typenode: boolean | string
+    html: string | Node,
+    typenode: boolean | string,
+    props?: any,
+    options?: any,
   ): number;
 
   /**
@@ -319,7 +321,7 @@ export default class Drawflow {
    * @param props Only for vue. Props of component. Not Required
    * @param options Only for vue. Options of component. Not Required
    */
-  registerNode(name: string, component: any, props: any, options: any): void;
+  registerNode(name: string, component: any, props?: any, options?: any): void;
 
   /**
    *
