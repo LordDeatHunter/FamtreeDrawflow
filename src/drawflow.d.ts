@@ -329,19 +329,19 @@ export default class Drawflow {
    * @param callback (event: id of Node)
    */
   /* tslint:disable:unified-signatures */
-  on(eventName: "nodeCreated", callback: (event: number) => void): void;
+  on(eventName: "nodeCreated", callback: (event: string | number) => void): void;
   /**
    *
    * @param eventName
    * @param callback (event: id of Node)
    */
-  on(eventName: "nodeRemoved", callback: (event: number) => void): void;
+  on(eventName: "nodeRemoved", callback: (event: string | number) => void): void;
   /**
    *
    * @param eventName
    * @param callback (event: id of Node)
    */
-  on(eventName: "nodeSelected", callback: (event: number) => void): void;
+  on(eventName: "nodeSelected", callback: (event: string | number) => void): void;
   /**
    *
    * @param eventName
@@ -353,7 +353,7 @@ export default class Drawflow {
    * @param eventName
    * @param callback
    */
-  on(eventName: "nodeMoved", callback: (event: any) => void): void;
+  on(eventName: "nodeMoved", callback: (event: string | number) => void): void;
   /**
    * Called when starting to create a connection
    * @param eventName
