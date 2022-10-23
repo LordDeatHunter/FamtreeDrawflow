@@ -2,7 +2,7 @@
   "name": "famtreedrawflow",
   "version": "0.0.1",
   "description": "Drawflow fork for Famtree project",
-  "main": "src/drawflow.js",
+  "main": "src/Drawflow.tsx",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,6 +17,11 @@
   },
   "homepage": "https://github.com/LordDeatHunter/FamtreeDrawflow",
   "devDependencies": {
-    "typescript": "^4.7.4"
+    "typescript": "^4.8.2",
+    "vite": "3.0.9",
+    "vite-plugin-solid": "2.3.0"
+  },
+  "dependencies": {
+    "solid-js": "1.5.2"
   }
 }
