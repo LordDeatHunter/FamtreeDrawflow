@@ -12,7 +12,7 @@ const App: Component = () => {
   };
 
   return (
-    <div style={{ height: "1000px" }}>
+    <>
       <button
         style={{ top: "2rem", left: "2rem", "font-size": "1.5rem" }}
         onClick={(_) => {
@@ -34,7 +34,7 @@ const App: Component = () => {
         Create new node
       </button>
       <Drawflow drawflowCallbacks={setDrawflowCallbacks} />
-    </div>
+    </>
   );
 };
 
