@@ -78,6 +78,11 @@ export interface DrawflowModuleData {
   };
 }
 
+export interface NodeConnectionProps {
+  connectionsString?: string;
+  path?: string;
+}
+
 export type StyleType = Record<string, string | number | undefined>;
 
 export interface DrawflowNodeType {

@@ -2,7 +2,7 @@
   display: flex;
   overflow: hidden;
   touch-action: none;
-  outline:none;
+  outline: none;
 }
 
 .drawflow {
@@ -30,7 +30,7 @@
   background: cyan;
   width: 160px;
   min-height: 40px;
-  border-radius:4px;
+  border-radius: 4px;
   border: 2px solid black;
   color: black;
   z-index: 2;
@@ -40,6 +40,7 @@
 .drawflow .drawflow-node.selected {
   background: red;
 }
+
 .drawflow .drawflow-node:hover {
   cursor: move;
 }
@@ -71,6 +72,7 @@
   top: 2px;
   background: yellow;
 }
+
 .drawflow .drawflow-node .output {
   right: -3px;
   top: 2px;
@@ -81,17 +83,20 @@
   position: absolute;
   overflow: visible !important;
 }
+
 .drawflow .connection {
   position: absolute;
   pointer-events: none;
   aspect-ratio: 1 / 1;
 }
+
 .drawflow .connection .main-path {
   fill: none;
   stroke-width: 5px;
   stroke: steelblue;
   pointer-events: all;
 }
+
 .drawflow .connection .main-path:hover {
   stroke: #1266ab;
   cursor: pointer;
@@ -135,6 +140,7 @@
   font-family: monospace;
   cursor: pointer;
 }
+
 .drawflow > .drawflow-delete {
   margin-left: -15px;
   margin-top: 15px;
