@@ -66,10 +66,8 @@ export interface DrawflowCallbacks {
 }
 
 export interface DrawflowData {
-  drawflow: {
-    Home: DrawflowModuleData; // always present
-    [customModuleName: string]: DrawflowModuleData;
-  };
+  Home: DrawflowModuleData; // always present
+  [customModuleName: string]: DrawflowModuleData;
 }
 
 export interface DrawflowModuleData {

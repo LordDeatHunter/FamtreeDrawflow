@@ -63,7 +63,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   let force_first_input: boolean = false;
   let draggable_inputs: boolean = true;
 
-  let drawflow: DrawflowData = { drawflow: { Home: { data: {} } } };
+  let drawflow: DrawflowData = { Home: { data: {} } };
 
   let module = "Home";
   let editor_mode = "edit";
@@ -128,17 +128,17 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   /* End Mobile Zoom */
   const load = (): void => {
     let key;
-    for (key in drawflow.drawflow[module].data) {
-      // addNodeImport(drawflow.drawflow[module].data[key], precanvas);
+    for (key in drawflow[module].data) {
+      // addNodeImport(drawflow[module].data[key], precanvas);
     }
 
     if (reroute) {
-      for (key in drawflow.drawflow[module].data) {
-        addRerouteImport(drawflow.drawflow[module].data[key]);
+      for (key in drawflow[module].data) {
+        addRerouteImport(drawflow[module].data[key]);
       }
     }
 
-    for (key in drawflow.drawflow[module].data) {
+    for (key in drawflow[module].data) {
       updateConnectionNodes(`node-${key}`);
     }
   };
@@ -398,9 +398,9 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       ele_selected!.style.top = `${ele_selected!.offsetTop - y}px`;
       ele_selected!.style.left = `${ele_selected!.offsetLeft - x}px`;
 
-      drawflow.drawflow[module].data[ele_selected!.id].pos_x =
+      drawflow[module].data[ele_selected!.id].pos_x =
         ele_selected!.offsetLeft - x;
-      drawflow.drawflow[module].data[ele_selected!.id].pos_y =
+      drawflow[module].data[ele_selected!.id].pos_y =
         ele_selected!.offsetTop - y;
 
       updateConnectionNodes(ele_selected!.id);
@@ -445,13 +445,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       }
 
       const nodeId = nodeUpdate.slice(5);
-      const searchConnection = drawflow.drawflow[module].data[nodeId].outputs[
+      const searchConnection = drawflow[module].data[nodeId].outputs[
         output_class
       ].connections.findIndex(function (item, i) {
         return item.node === nodeUpdateIn && item.output === input_class;
       });
 
-      drawflow.drawflow[module].data[nodeId].outputs[output_class].connections[
+      drawflow[module].data[nodeId].outputs[output_class].connections[
         searchConnection
       ].points![numberPointPosition] = {
         pos_x: dragged_pos_x,
@@ -552,13 +552,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               connectionsString: `node_in_${input_id} node_out_${output_id} ${output_class} ${input_class}`,
             });
 
-            drawflow.drawflow[module].data[output_id].outputs[
+            drawflow[module].data[output_id].outputs[
               output_class
             ].connections.push({
               node: input_id,
               output: input_class,
             });
-            drawflow.drawflow[module].data[input_id].inputs[
+            drawflow[module].data[input_id].inputs[
               input_class
             ].connections.push({
               node: output_id,
@@ -824,13 +824,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       // Check connection exist
       if (!exist) {
         //Create Connection
-        drawflow.drawflow[nodeOneModule].data[id_output].outputs[
+        drawflow[nodeOneModule].data[id_output].outputs[
           output_class
         ].connections.push({
           node: id_input.toString(),
           output: input_class,
         });
-        drawflow.drawflow[nodeOneModule].data[id_input].inputs[
+        drawflow[nodeOneModule].data[id_input].inputs[
           input_class
         ].connections.push({
           node: id_output.toString(),
@@ -1526,18 +1526,18 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     }
 
     const nodeId = nodeUpdate.slice(5);
-    const searchConnection = drawflow.drawflow[module].data[nodeId].outputs[
+    const searchConnection = drawflow[module].data[nodeId].outputs[
       output_class
     ].connections.findIndex(
       (item, i) => item.node === nodeUpdateIn && item.output === input_class
     );
 
     if (
-      drawflow.drawflow[module].data[nodeId].outputs[output_class].connections[
+      drawflow[module].data[nodeId].outputs[output_class].connections[
         searchConnection
       ].points === undefined
     ) {
-      drawflow.drawflow[module].data[nodeId].outputs[output_class].connections[
+      drawflow[module].data[nodeId].outputs[output_class].connections[
         searchConnection
       ].points = [];
     }
@@ -1545,23 +1545,20 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     if (reroute_fix_curvature) {
       if (
         position_add_array_point > 0 ||
-        drawflow.drawflow[module].data[nodeId].outputs[output_class]
-          .connections[searchConnection].points!.length !== 0
+        drawflow[module].data[nodeId].outputs[output_class].connections[
+          searchConnection
+        ].points!.length !== 0
       ) {
-        drawflow.drawflow[module].data[nodeId].outputs[
-          output_class
-        ].connections[searchConnection].points!.splice(
-          position_add_array_point,
-          0,
-          {
-            pos_x: new_pos_x,
-            pos_y: new_pos_y,
-          }
-        );
+        drawflow[module].data[nodeId].outputs[output_class].connections[
+          searchConnection
+        ].points!.splice(position_add_array_point, 0, {
+          pos_x: new_pos_x,
+          pos_y: new_pos_y,
+        });
       } else {
-        drawflow.drawflow[module].data[nodeId].outputs[
-          output_class
-        ].connections[searchConnection].points!.push({
+        drawflow[module].data[nodeId].outputs[output_class].connections[
+          searchConnection
+        ].points!.push({
           pos_x: new_pos_x,
           pos_y: new_pos_y,
         });
@@ -1571,7 +1568,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         item.classList.remove("selected");
       });
     } else {
-      drawflow.drawflow[module].data[nodeId].outputs[output_class].connections[
+      drawflow[module].data[nodeId].outputs[output_class].connections[
         searchConnection
       ].points!.push({
         pos_x: new_pos_x,
@@ -1592,7 +1589,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
     let numberPointPosition = Array.from(parentElement.children).indexOf(ele);
     const nodeId = nodeUpdate.slice(5);
-    const searchConnection = drawflow.drawflow[module].data[nodeId].outputs[
+    const searchConnection = drawflow[module].data[nodeId].outputs[
       output_class
     ].connections.findIndex(
       (item: DrawflowOutputConnection) =>
@@ -1610,7 +1607,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     } else {
       numberPointPosition--;
     }
-    drawflow.drawflow[module].data[nodeId].outputs[output_class].connections[
+    drawflow[module].data[nodeId].outputs[output_class].connections[
       searchConnection
     ].points!.splice(numberPointPosition, 1);
 
@@ -1621,12 +1618,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
   const getNodeFromId = (id: string): DrawflowNodeType => {
     const moduleName: string = getModuleFromNodeId(id);
-    return JSON.parse(JSON.stringify(drawflow.drawflow[moduleName].data[id]));
+    return JSON.parse(JSON.stringify(drawflow[moduleName].data[id]));
   };
 
   const getNodesFromName = (name: string): string[] => {
     const nodes: string[] = [];
-    const editor = drawflow.drawflow;
+    const editor = drawflow;
     Object.keys(editor).map((moduleName) => {
       for (let node in editor[moduleName].data) {
         if (editor[moduleName].data[node].name == name) {
@@ -1712,9 +1709,9 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     for (let x = 0; x < outputs; x++) {
       json_outputs[`output_${x + 1}`] = { connections: [] };
     }
-    drawflow.drawflow[module].data[newNodeId] = {
+    drawflow[module].data[newNodeId] = {
       id: newNodeId,
-      name: name,
+      name,
       data: data,
       inputs: json_inputs,
       outputs: json_outputs,
@@ -1914,7 +1911,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       if (attr[i].nodeName.startsWith("df-")) {
         const keys = attr[i].nodeName.slice(3).split("-");
         let target =
-          drawflow.drawflow[module].data[
+          drawflow[module].data[
             eventTarget
               .closest(".drawflow_content_node")!
               .parentElement!.id.slice(5)
@@ -1942,7 +1939,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   // TODO: check if this is relevant
   // const updateNodeDataFromId = (id: string, data: any) => {
   //   const moduleName = getModuleFromNodeId(id);
-  //   drawflow.drawflow[moduleName].data[id].data = data;
+  //   drawflow[moduleName].data[id].data = data;
   //   if (module === moduleName) {
   //     const content = container.querySelector("#node-" + id)!;
   //
@@ -1996,7 +1993,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       parent!.appendChild(input);
       updateConnectionNodes(`node-${id}`);
     }
-    drawflow.drawflow[moduleName].data[id].inputs[`input_${numInputs + 1}`] = {
+    drawflow[moduleName].data[id].inputs[`input_${numInputs + 1}`] = {
       connections: [],
     };
   };
@@ -2014,8 +2011,9 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       parent!.appendChild(output);
       updateConnectionNodes(`node-${id}`);
     }
-    drawflow.drawflow[moduleName].data[id].outputs[`output_${numOutputs + 1}`] =
-      { connections: [] };
+    drawflow[moduleName].data[id].outputs[`output_${numOutputs + 1}`] = {
+      connections: [],
+    };
   };
 
   const removeNodeInput = (id: string, input_class: string): void => {
@@ -2048,22 +2046,22 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       );
     });
 
-    delete drawflow.drawflow[moduleName].data[id].inputs[input_class];
+    delete drawflow[moduleName].data[id].inputs[input_class];
 
     // Update connection
     const connections: { connections: DrawflowInputConnection[] }[] = [];
-    const connectionsInputs = drawflow.drawflow[moduleName].data[id].inputs;
+    const connectionsInputs = drawflow[moduleName].data[id].inputs;
     Object.keys(connectionsInputs).map((key, index) => {
       connections.push(connectionsInputs[key]);
     });
-    drawflow.drawflow[moduleName].data[id].inputs = {};
+    drawflow[moduleName].data[id].inputs = {};
     const input_class_id = input_class.slice(6);
     let nodeUpdates: DrawflowInputConnection[] = [];
     connections.forEach((item, i) => {
       item.connections.forEach((itemx, f) => {
         nodeUpdates.push(itemx);
       });
-      drawflow.drawflow[moduleName].data[id].inputs[`input_${i + 1}`] = item;
+      drawflow[moduleName].data[id].inputs[`input_${i + 1}`] = item;
     });
     let nodeUpdatesSet = new Set(nodeUpdates.map((e) => JSON.stringify(e)));
     nodeUpdates = Array.from(nodeUpdatesSet).map((e) => JSON.parse(e));
@@ -2082,7 +2080,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     // }
     //
     // nodeUpdates.forEach((itemx, i) => {
-    //     drawflow.drawflow[moduleName].data[itemx.node].outputs[itemx.input].connections.forEach((itemz, g) => {
+    //     drawflow[moduleName].data[itemx.node].outputs[itemx.input].connections.forEach((itemz, g) => {
     //         if (itemz.node == id) {
     //             const output_id = itemz.output.slice(6);
     //             if (parseInt(input_class_id) < parseInt(output_id)) {
@@ -2092,13 +2090,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     //                     ele.classList.add('input_' + (output_id - 1));
     //                 }
     //                 if (itemz.points) {
-    //                     drawflow.drawflow[moduleName].data[itemx.node].outputs[itemx.input].connections[g] = {
+    //                     drawflow[moduleName].data[itemx.node].outputs[itemx.input].connections[g] = {
     //                         node: itemz.node,
     //                         output: 'input_' + (output_id - 1),
     //                         points: itemz.points
     //                     }
     //                 } else {
-    //                     drawflow.drawflow[moduleName].data[itemx.node].outputs[itemx.input].connections[g] = {
+    //                     drawflow[moduleName].data[itemx.node].outputs[itemx.input].connections[g] = {
     //                         node: itemz.node,
     //                         output: 'input_' + (output_id - 1)
     //                     }
@@ -2147,22 +2145,22 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       );
     });
 
-    delete drawflow.drawflow[moduleName].data[id].outputs[output_class];
+    delete drawflow[moduleName].data[id].outputs[output_class];
 
     // Update connection
     const connections: { connections: DrawflowOutputConnection[] }[] = [];
-    const connectionOutputs = drawflow.drawflow[moduleName].data[id].outputs;
+    const connectionOutputs = drawflow[moduleName].data[id].outputs;
     Object.keys(connectionOutputs).forEach((key) => {
       connections.push(connectionOutputs[Number(key)]);
     });
-    drawflow.drawflow[moduleName].data[id].outputs = {};
+    drawflow[moduleName].data[id].outputs = {};
     const output_class_id = output_class.slice(7);
     let nodeUpdates: DrawflowOutputConnection[] = [];
     connections.forEach((item, i) => {
       item.connections.forEach((itemx, f) => {
         nodeUpdates.push({ node: itemx.node, output: itemx.output });
       });
-      drawflow.drawflow[moduleName].data[id].outputs[`output_${i + 1}`] = item;
+      drawflow[moduleName].data[id].outputs[`output_${i + 1}`] = item;
     });
     let nodeUpdatesSet = new Set(nodeUpdates.map((e) => JSON.stringify(e)));
     nodeUpdates = Array.from(nodeUpdatesSet).map((e) => JSON.parse(e));
@@ -2180,7 +2178,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     // }
     //
     // nodeUpdates.forEach((itemx, i) => {
-    //     drawflow.drawflow[moduleName].data[itemx.node].inputs[itemx.output].connections.forEach((itemz, g) => {
+    //     drawflow[moduleName].data[itemx.node].inputs[itemx.output].connections.forEach((itemz, g) => {
     //         if (itemz.node == id) {
     //             const input_id = itemz.input.slice(7);
     //             if (parseInt(output_class_id) < parseInt(input_id)) {
@@ -2192,13 +2190,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     //                     ele.classList.add(itemx.output);
     //                 }
     //                 if (itemz.points) {
-    //                     drawflow.drawflow[moduleName].data[itemx.node].inputs[itemx.output].connections[g] = {
+    //                     drawflow[moduleName].data[itemx.node].inputs[itemx.output].connections[g] = {
     //                         node: itemz.node,
     //                         input: 'output_' + (input_id - 1),
     //                         points: itemz.points
     //                     }
     //                 } else {
-    //                     drawflow.drawflow[moduleName].data[itemx.node].inputs[itemx.output].connections[g] = {
+    //                     drawflow[moduleName].data[itemx.node].inputs[itemx.output].connections[g] = {
     //                         node: itemz.node,
     //                         input: 'output_' + (input_id - 1)
     //                     }
@@ -2217,7 +2215,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     if (module === moduleName) {
       container.querySelector(`[id="${id}"]`)!.remove();
     }
-    delete drawflow.drawflow[moduleName].data[id];
+    delete drawflow[moduleName].data[id];
     dispatch("nodeRemoved", id);
   };
 
@@ -2226,23 +2224,23 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       const listClass = connection_selected.parentElement!.classList;
       connection_selected.parentElement!.remove();
       //console.log(listClass);
-      const index_out = drawflow.drawflow[module].data[
-        listClass[2].slice(9)
-      ].outputs[listClass[3]].connections.findIndex(
+      const index_out = drawflow[module].data[listClass[2].slice(9)].outputs[
+        listClass[3]
+      ].connections.findIndex(
         (item, i) =>
           item.node === listClass[1].slice(8) && item.output === listClass[4]
       );
-      drawflow.drawflow[module].data[listClass[2].slice(9)].outputs[
+      drawflow[module].data[listClass[2].slice(9)].outputs[
         listClass[3]
       ].connections.splice(index_out, 1);
 
-      const index_in = drawflow.drawflow[module].data[
-        listClass[1].slice(8)
-      ].inputs[listClass[4]].connections.findIndex(
+      const index_in = drawflow[module].data[listClass[1].slice(8)].inputs[
+        listClass[4]
+      ].connections.findIndex(
         (item, i) =>
           item.node === listClass[2].slice(9) && item.input === listClass[3]
       );
-      drawflow.drawflow[module].data[listClass[1].slice(8)].inputs[
+      drawflow[module].data[listClass[1].slice(8)].inputs[
         listClass[4]
       ].connections.splice(index_in, 1);
 
@@ -2269,7 +2267,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       return false;
     }
     // Check connection exist
-    const exists = drawflow.drawflow[nodeOneModule].data[id_output].outputs[
+    const exists = drawflow[nodeOneModule].data[id_output].outputs[
       output_class
     ].connections.findIndex(
       (item, i) => item.node == id_input && item.output === input_class
@@ -2286,21 +2284,21 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         .remove();
     }
 
-    const index_out = drawflow.drawflow[nodeOneModule].data[id_output].outputs[
+    const index_out = drawflow[nodeOneModule].data[id_output].outputs[
       output_class
     ].connections.findIndex(
       (item, i) => item.node == id_input && item.output === input_class
     );
-    drawflow.drawflow[nodeOneModule].data[id_output].outputs[
+    drawflow[nodeOneModule].data[id_output].outputs[
       output_class
     ].connections.splice(index_out, 1);
 
-    const index_in = drawflow.drawflow[nodeOneModule].data[id_input].inputs[
+    const index_in = drawflow[nodeOneModule].data[id_input].inputs[
       input_class
     ].connections.findIndex(
       (item, i) => item.node == id_output && item.input === output_class
     );
-    drawflow.drawflow[nodeOneModule].data[id_input].inputs[
+    drawflow[nodeOneModule].data[id_input].inputs[
       input_class
     ].connections.splice(index_in, 1);
 
@@ -2327,23 +2325,23 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     for (let i = elements.length - 1; i >= 0; i--) {
       const classList = elements[i].classList;
 
-      const index_out = drawflow.drawflow[module].data[
-        classList[2].slice(9)
-      ].outputs[classList[3]].connections.findIndex(
+      const index_out = drawflow[module].data[classList[2].slice(9)].outputs[
+        classList[3]
+      ].connections.findIndex(
         (item, i) =>
           item.node === classList[1].slice(8) && item.output === classList[4]
       );
-      drawflow.drawflow[module].data[classList[2].slice(9)].outputs[
+      drawflow[module].data[classList[2].slice(9)].outputs[
         classList[3]
       ].connections.splice(index_out, 1);
 
-      const index_in = drawflow.drawflow[module].data[
-        classList[1].slice(8)
-      ].inputs[classList[4]].connections.findIndex(
+      const index_in = drawflow[module].data[classList[1].slice(8)].inputs[
+        classList[4]
+      ].connections.findIndex(
         (item, i) =>
           item.node === classList[2].slice(9) && item.input === classList[3]
       );
-      drawflow.drawflow[module].data[classList[1].slice(8)].inputs[
+      drawflow[module].data[classList[1].slice(8)].inputs[
         classList[4]
       ].connections.splice(index_in, 1);
 
@@ -2360,7 +2358,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
   const getModuleFromNodeId = (id: string): string => {
     let nameModule = "";
-    const editor = drawflow.drawflow;
+    const editor = drawflow;
     Object.keys(editor).forEach((moduleName, index) => {
       Object.keys(editor[moduleName].data).forEach((node, index2) => {
         if (node == id) {
@@ -2373,7 +2371,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const addModule = (name: string): void => {
-    drawflow.drawflow[name] = { data: {} };
+    drawflow[name] = { data: {} };
     dispatch("moduleCreated", name);
   };
 
@@ -2397,18 +2395,18 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     if (module === name) {
       changeModule("Home");
     }
-    delete drawflow.drawflow[name];
+    delete drawflow[name];
     dispatch("moduleRemoved", name);
   };
 
   const clearModuleSelected = (): void => {
     precanvas.innerHTML = "";
-    drawflow.drawflow[module] = { data: {} };
+    drawflow[module] = { data: {} };
   };
 
   const clear = (): void => {
     precanvas.innerHTML = "";
-    drawflow = { drawflow: { Home: { data: {} } } };
+    drawflow = { Home: { data: {} } };
   };
 
   const exportDrawflow = (): DrawflowData => {
