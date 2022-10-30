@@ -1,15 +1,15 @@
 ﻿import { Component } from "solid-js";
 
 export interface ConnectionEvent {
-  output_id: string;
-  input_id: string;
-  output_class: string;
-  input_class: string;
+  outputId: string;
+  inputId: string;
+  outputClass: string;
+  inputClass: string;
 }
 
 export interface ConnectionStartEvent {
-  output_id: string;
-  output_class: string;
+  outputId: string;
+  outputClass: string;
 }
 
 export interface MousePositionEvent {
@@ -31,8 +31,8 @@ export interface DrawflowCallbacks {
   addConnection: (
     id_output: string,
     id_input: string,
-    output_class: string,
-    input_class: string
+    outputClass: string,
+    inputClass: string
   ) => void;
   updateConnectionNodes: (id: string) => void;
   getNodeFromId: (id: string) => DrawflowNodeType;
@@ -49,8 +49,8 @@ export interface DrawflowCallbacks {
   ) => string;
   addNodeInput: (id: string) => void;
   addNodeOutput: (id: string) => void;
-  removeNodeInput: (id: string, input_class: string) => void;
-  removeNodeOutput: (id: string, output_class: string) => void;
+  removeNodeInput: (id: string, inputClass: string) => void;
+  removeNodeOutput: (id: string, outputClass: string) => void;
   removeNodeId: (id: string) => void;
   removeConnectionNodeId: (id: string) => void;
   removeConnectionNodes: (elements: NodeListOf<Element>) => void;

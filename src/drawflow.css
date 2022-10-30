@@ -46,7 +46,7 @@
 }
 
 .drawflow .drawflow-node .inputs, .drawflow .drawflow-node .outputs {
-  width: 0px;
+  width: 0;
 }
 
 .drawflow .drawflow-node .drawflow_content_node {
