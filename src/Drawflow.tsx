@@ -47,12 +47,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   let isEditorSelected: boolean = false;
   let connection: boolean = false;
   let selectedConnection: SVGPathElement | null = null;
-  let canvas_x: number = 0;
-  let canvas_y: number = 0;
-  let pos_x: number = 0;
-  let pos_x_start: number = 0;
-  let pos_y: number = 0;
-  let pos_y_start: number = 0;
+  let canvasX: number = 0;
+  let canvasY: number = 0;
+  let positionX: number = 0;
+  let positionY: number = 0;
+  let startPositionX: number = 0;
+  let startPositionY: number = 0;
   let mouseX: number = 0;
   let mouseY: number = 0;
   let firstClick: Element | null = null;
@@ -339,18 +339,18 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
     if (e.type === "touchstart") {
       const touch = e as TouchEvent;
-      pos_x = touch.touches[0].clientX;
-      pos_x_start = touch.touches[0].clientX;
-      pos_y = touch.touches[0].clientY;
-      pos_y_start = touch.touches[0].clientY;
+      positionX = touch.touches[0].clientX;
+      startPositionX = touch.touches[0].clientX;
+      positionY = touch.touches[0].clientY;
+      startPositionY = touch.touches[0].clientY;
       mouseX = touch.touches[0].clientX;
       mouseY = touch.touches[0].clientY;
     } else {
       const mouse = e as MouseEvent;
-      pos_x = mouse.clientX;
-      pos_x_start = mouse.clientX;
-      pos_y = mouse.clientY;
-      pos_y_start = mouse.clientY;
+      positionX = mouse.clientX;
+      startPositionX = mouse.clientX;
+      positionY = mouse.clientY;
+      startPositionY = mouse.clientY;
     }
     if (
       ["input", "output", "main-path"].includes(selectedElement!.classList[0])
@@ -363,44 +363,44 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   const position = (e: MouseEvent | TouchEvent) => {
     let y;
     let x;
-    let e_pos_y;
-    let e_pos_x;
+    let eventPositionX;
+    let eventPositionY;
     if (e.type === "touchmove") {
       const touch = e as TouchEvent;
-      e_pos_x = touch.touches[0].clientX;
-      e_pos_y = touch.touches[0].clientY;
+      eventPositionX = touch.touches[0].clientX;
+      eventPositionY = touch.touches[0].clientY;
     } else {
       const mouse = e as MouseEvent;
-      e_pos_x = mouse.clientX;
-      e_pos_y = mouse.clientY;
+      eventPositionX = mouse.clientX;
+      eventPositionY = mouse.clientY;
     }
 
     if (connection) {
-      updateConnection(e_pos_x, e_pos_y);
+      updateConnection(eventPositionX, eventPositionY);
     }
     if (isEditorSelected) {
-      x = canvas_x + -(pos_x - e_pos_x);
-      y = canvas_y + -(pos_y - e_pos_y);
+      x = canvasX + -(positionX - eventPositionX);
+      y = canvasY + -(positionY - eventPositionY);
       dispatch("translate", { x: x, y: y });
       setPrecanvasTransform(`translate(${x}px, ${y}px) scale(${zoom})`);
     }
     if (drag) {
       e.preventDefault();
       x =
-        ((pos_x - e_pos_x) * precanvas.clientWidth) /
+        ((positionX - eventPositionX) * precanvas.clientWidth) /
         (precanvas.clientWidth * zoom);
       y =
-        ((pos_y - e_pos_y) * precanvas.clientHeight) /
+        ((positionY - eventPositionY) * precanvas.clientHeight) /
         (precanvas.clientHeight * zoom);
-      pos_x = e_pos_x;
-      pos_y = e_pos_y;
+      positionX = eventPositionX;
+      positionY = eventPositionY;
 
       selectedElement!.style.top = `${selectedElement!.offsetTop - y}px`;
       selectedElement!.style.left = `${selectedElement!.offsetLeft - x}px`;
 
-      drawflow[module].data[selectedElement!.id].pos_x =
+      drawflow[module].data[selectedElement!.id].positionX =
         selectedElement!.offsetLeft - x;
-      drawflow[module].data[selectedElement!.id].pos_y =
+      drawflow[module].data[selectedElement!.id].positionY =
         selectedElement!.offsetTop - y;
 
       updateConnectionNodes(selectedElement!.id);
@@ -408,22 +408,22 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
     if (dragPoint) {
       // What the hell is this even doing here??
-      // x = (pos_x - e_pos_x) * precanvas.clientWidth / (precanvas.clientWidth * zoom);
-      // y = (pos_y - e_pos_y) * precanvas.clientHeight / (precanvas.clientHeight * zoom);
-      pos_x = e_pos_x;
-      pos_y = e_pos_y;
+      // x = (positionX - eventPositionX) * precanvas.clientWidth / (precanvas.clientWidth * zoom);
+      // y = (positionY - eventPositionY) * precanvas.clientHeight / (precanvas.clientHeight * zoom);
+      positionX = eventPositionX;
+      positionY = eventPositionY;
 
-      const dragged_pos_x =
-        pos_x * (precanvas.clientWidth / (precanvas.clientWidth * zoom)) -
+      const draggedPositionX =
+        positionX * (precanvas.clientWidth / (precanvas.clientWidth * zoom)) -
         precanvas.getBoundingClientRect().x *
           (precanvas.clientWidth / (precanvas.clientWidth * zoom));
-      const dragged_pos_y =
-        pos_y * (precanvas.clientHeight / (precanvas.clientHeight * zoom)) -
+      const draggedPositionY =
+        positionY * (precanvas.clientHeight / (precanvas.clientHeight * zoom)) -
         precanvas.getBoundingClientRect().y *
           (precanvas.clientHeight / (precanvas.clientHeight * zoom));
 
-      selectedElement!.setAttributeNS(null, "cx", String(dragged_pos_x));
-      selectedElement!.setAttributeNS(null, "cy", String(dragged_pos_y));
+      selectedElement!.setAttributeNS(null, "cx", String(draggedPositionX));
+      selectedElement!.setAttributeNS(null, "cy", String(draggedPositionY));
 
       const parentElement = selectedElement!.parentElement!;
 
@@ -454,8 +454,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       drawflow[module].data[nodeId].outputs[outputClass].connections[
         searchConnection
       ].points![numberPointPosition] = {
-        pos_x: dragged_pos_x,
-        pos_y: dragged_pos_y,
+        positionX: draggedPositionX,
+        positionY: draggedPositionY,
       };
 
       const parentSelected = parentElement.classList[2].slice(9);
@@ -464,42 +464,42 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     }
 
     if (e.type === "touchmove") {
-      mouseX = e_pos_x;
-      mouseY = e_pos_y;
+      mouseX = eventPositionX;
+      mouseY = eventPositionY;
     }
-    dispatch("mouseMove", { x: e_pos_x, y: e_pos_y });
+    dispatch("mouseMove", { x: eventPositionX, y: eventPositionY });
   };
 
   const dragEnd = (e: MouseEvent | TouchEvent) => {
     let inputClass;
     let inputId;
     let lastElement;
-    let elementPositionY;
-    let elementPositionX;
+    let eventPositionX;
+    let eventPositionY;
     if (e.type === "touchend") {
-      elementPositionX = mouseX;
-      elementPositionY = mouseY;
-      lastElement = document.elementFromPoint(
-        elementPositionX,
-        elementPositionY
-      )!;
+      eventPositionX = mouseX;
+      eventPositionY = mouseY;
+      lastElement = document.elementFromPoint(eventPositionX, eventPositionY)!;
     } else {
       const mouseEvent = e as MouseEvent;
-      elementPositionX = mouseEvent.clientX;
-      elementPositionY = mouseEvent.clientY;
+      eventPositionX = mouseEvent.clientX;
+      eventPositionY = mouseEvent.clientY;
       lastElement = mouseEvent.target! as HTMLElement;
     }
 
     if (
       drag &&
-      (pos_x_start != elementPositionX || pos_y_start != elementPositionY)
+      (startPositionX != eventPositionX || startPositionY != eventPositionY)
     ) {
       dispatch("nodeMoved", selectedElement!.id);
     }
 
     if (dragPoint) {
       selectedElement!.classList.remove("selected");
-      if (pos_x_start != elementPositionX || pos_y_start != elementPositionY) {
+      if (
+        startPositionX != eventPositionX ||
+        startPositionY != eventPositionY
+      ) {
         dispatch(
           "rerouteMoved",
           selectedElement!.parentElement!.classList[2].slice(9)
@@ -508,8 +508,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     }
 
     if (isEditorSelected) {
-      canvas_x = canvas_x + -(pos_x - elementPositionX);
-      canvas_y = canvas_y + -(pos_y - elementPositionY);
+      canvasX = canvasX + -(positionX - eventPositionX);
+      canvasY = canvasY + -(positionY - eventPositionY);
       isEditorSelected = false;
     }
     if (connection) {
@@ -667,11 +667,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
   const refreshZoom = (): void => {
     dispatch("zoom", zoom);
-    canvas_x = (canvas_x / lastZoom) * zoom;
-    canvas_y = (canvas_y / lastZoom) * zoom;
+    canvasX = (canvasX / lastZoom) * zoom;
+    canvasY = (canvasY / lastZoom) * zoom;
     lastZoom = zoom;
     setPrecanvasTransform(
-      `translate(${canvas_x}px, ${canvas_y}px) scale(${zoom})`
+      `translate(${canvasX}px, ${canvasY}px) scale(${zoom})`
     );
   };
 
@@ -746,11 +746,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   const drawConnection = (ele: Element): void => {
     const [props, setProps] = createSignal({});
     setNodeConnections([...nodeConnections(), { props, setProps }]);
-    const id_output = ele.parentElement?.parentElement?.id;
+    const outputId = ele.parentElement?.parentElement?.id;
     const outputClass = ele.classList[1];
     dispatch("connectionStart", {
-      outputId: id_output,
-      outputClass: outputClass,
+      outputId,
+      outputClass,
     });
   };
 
@@ -797,55 +797,51 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const addConnection = (
-    id_output: string,
-    id_input: string,
+    outputId: string,
+    inputId: string,
     outputClass: string,
     inputClass: string
   ): void => {
-    const nodeOneModule = getModuleFromNodeId(id_output);
-    const nodeTwoModule = getModuleFromNodeId(id_input);
-    if (nodeOneModule === nodeTwoModule) {
-      const dataNode = getNodeFromId(id_output);
-      let exist = dataNode.outputs[outputClass].connections.find(
-        (connection) =>
-          connection.node == id_input && connection.output == inputClass
-      );
-      // Check if the connection exists
-      if (!exist) {
-        //Create Connection
-        drawflow[nodeOneModule].data[id_output].outputs[
-          outputClass
-        ].connections.push({
-          node: id_input,
-          output: inputClass,
-        });
-        drawflow[nodeOneModule].data[id_input].inputs[
-          inputClass
-        ].connections.push({
-          node: id_output,
-          input: outputClass,
-        });
-
-        if (module === nodeOneModule) {
-          //Draw connection
-          const [props, setProps] = createSignal({
-            connectionsString: `connection node_in_${id_input} node_out_${id_output} ${outputClass} ${inputClass}`,
-            path: "",
-          });
-          setNodeConnections([...nodeConnections(), { props, setProps }]);
-
-          updateConnectionNodes(id_output);
-          updateConnectionNodes(id_input);
-        }
-
-        dispatch("connectionCreated", {
-          outputId: id_output,
-          inputId: id_input,
-          outputClass: outputClass,
-          inputClass: inputClass,
-        });
-      }
+    const nodeOneModule = getModuleFromNodeId(outputId);
+    const nodeTwoModule = getModuleFromNodeId(inputId);
+    if (nodeOneModule !== nodeTwoModule) {
+      return;
     }
+    const dataNode = getNodeFromId(outputId);
+    let exist = dataNode.outputs[outputClass].connections.find(
+      (connection) =>
+        connection.node == inputId && connection.output == inputClass
+    );
+    if (exist) {
+      return;
+    }
+    drawflow[nodeOneModule].data[outputId].outputs[
+      outputClass
+    ].connections.push({
+      node: inputId,
+      output: inputClass,
+    });
+    drawflow[nodeOneModule].data[inputId].inputs[inputClass].connections.push({
+      node: outputId,
+      input: outputClass,
+    });
+    if (module === nodeOneModule) {
+      //Draw connection
+      const [props, setProps] = createSignal({
+        connectionsString: `connection node_in_${inputId} node_out_${outputId} ${outputClass} ${inputClass}`,
+        path: "",
+      });
+      setNodeConnections([...nodeConnections(), { props, setProps }]);
+
+      updateConnectionNodes(outputId);
+      updateConnectionNodes(inputId);
+    }
+    dispatch("connectionCreated", {
+      outputId: outputId,
+      inputId: inputId,
+      outputClass: outputClass,
+      inputClass: inputClass,
+    });
   };
 
   const updateConnectionNodes = (id: string): void => {
@@ -863,12 +859,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     Object.keys(elemsOut).map((item, i) => {
       const elem = elemsOut[Number(item)];
       if (elem.querySelector(".point") === null) {
-        const elementSearchId_out = container.querySelector(`[id="${id}"]`);
+        const elementSearchIdOut = container.querySelector(`[id="${id}"]`);
 
-        const id_search = elem.classList[1].replace("node_in_", "");
-        const elementSearchId = container.querySelector(`[id="${id_search}"]`);
+        const searchId = elem.classList[1].replace("node_in_", "");
+        const searchIdElement = container.querySelector(`[id="${searchId}"]`);
 
-        const elementSearch = elementSearchId!.querySelectorAll(
+        const elementSearch = searchIdElement!.querySelectorAll(
           `.${elem.classList[4]}`
         )[0] as HTMLElement;
 
@@ -883,7 +879,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             precanvas.getBoundingClientRect().y) *
             precanvasHeightZoom;
 
-        const elementSearchOut = elementSearchId_out!.querySelectorAll(
+        const elementSearchOut = elementSearchIdOut!.querySelectorAll(
           `.${elem.classList[3]}`
         )[0] as HTMLElement;
 
@@ -910,12 +906,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       } else {
         const points = elem.querySelectorAll(".point");
         let linecurve = "";
-        const reroute_fix: string[] = [];
+        const rerouteFix: string[] = [];
         points.forEach((point: Element, i: number) => {
           let elementSearchOut;
           let elementSearch;
           if (i === 0) {
-            let elementSearchId_out = container.querySelector(`[id="${id}"]`);
+            let elementSearchIdOut = container.querySelector(`[id="${id}"]`);
             elementSearch = point;
 
             let eX =
@@ -929,7 +925,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 precanvasHeightZoom +
               rerouteWidth;
 
-            elementSearchOut = elementSearchId_out!.querySelectorAll(
+            elementSearchOut = elementSearchIdOut!.querySelectorAll(
               `.${elementSearch.parentElement!.classList[3]}`
             )[0] as HTMLElement;
             let lineX =
@@ -952,20 +948,20 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               "open"
             );
             linecurve += lineCurveSearch;
-            reroute_fix.push(lineCurveSearch);
+            rerouteFix.push(lineCurveSearch);
             if (points.length - 1 === 0) {
-              elementSearchId_out = point;
-              const id_search =
-                elementSearchId_out.parentElement!.classList[1].replace(
+              elementSearchIdOut = point;
+              const searchId =
+                elementSearchIdOut.parentElement!.classList[1].replace(
                   "node_in_",
                   ""
                 );
               const elementSearchId = container.querySelector(
-                `[id="${id_search}"]`
+                `[id="${searchId}"]`
               );
 
               const elementSearchIn = elementSearchId!.querySelectorAll(
-                `.${elementSearchId_out.parentElement!.classList[4]}`
+                `.${elementSearchIdOut.parentElement!.classList[4]}`
               )[0] as HTMLElement;
               eX =
                 elementSearchIn.offsetWidth / 2 +
@@ -979,12 +975,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                   precanvasHeightZoom;
 
               lineX =
-                (elementSearchId_out.getBoundingClientRect().x -
+                (elementSearchIdOut.getBoundingClientRect().x -
                   precanvas.getBoundingClientRect().x) *
                   precanvasWidthZoom +
                 rerouteWidth;
               lineY =
-                (elementSearchId_out.getBoundingClientRect().y -
+                (elementSearchIdOut.getBoundingClientRect().y -
                   precanvas.getBoundingClientRect().y) *
                   precanvasHeightZoom +
                 rerouteWidth;
@@ -997,9 +993,9 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 "close"
               );
               linecurve += lineCurveSearch;
-              reroute_fix.push(lineCurveSearch);
+              rerouteFix.push(lineCurveSearch);
             } else {
-              elementSearchId_out = point;
+              elementSearchIdOut = point;
               elementSearch = points[i + 1];
 
               eX =
@@ -1013,12 +1009,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                   precanvasHeightZoom +
                 rerouteWidth;
               lineX =
-                (elementSearchId_out.getBoundingClientRect().x -
+                (elementSearchIdOut.getBoundingClientRect().x -
                   precanvas.getBoundingClientRect().x) *
                   precanvasWidthZoom +
                 rerouteWidth;
               lineY =
-                (elementSearchId_out.getBoundingClientRect().y -
+                (elementSearchIdOut.getBoundingClientRect().y -
                   precanvas.getBoundingClientRect().y) *
                   precanvasHeightZoom +
                 rerouteWidth;
@@ -1032,22 +1028,22 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 "other"
               );
               linecurve += lineCurveSearch;
-              reroute_fix.push(lineCurveSearch);
+              rerouteFix.push(lineCurveSearch);
             }
           } else if (i === points.length - 1) {
-            const elementSearchId_out = point;
+            const elementSearchIdOut = point;
 
-            const id_search =
-              elementSearchId_out.parentElement!.classList[1].replace(
+            const searchId =
+              elementSearchIdOut.parentElement!.classList[1].replace(
                 "node_in_",
                 ""
               );
             const elementSearchId = container.querySelector(
-              `[id="${id_search}"]`
+              `[id="${searchId}"]`
             );
 
             const elementSearchIn = elementSearchId!.querySelectorAll(
-              `.${elementSearchId_out.parentElement!.classList[4]}`
+              `.${elementSearchIdOut.parentElement!.classList[4]}`
             )[0] as HTMLElement;
             let eX =
               elementSearchIn.offsetWidth / 2 +
@@ -1060,12 +1056,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 precanvas.getBoundingClientRect().y) *
                 precanvasHeightZoom;
             let lineX =
-              (elementSearchId_out.getBoundingClientRect().x -
+              (elementSearchIdOut.getBoundingClientRect().x -
                 precanvas.getBoundingClientRect().x) *
                 (precanvas.clientWidth / (precanvas.clientWidth * zoom)) +
               rerouteWidth;
             let lineY =
-              (elementSearchId_out.getBoundingClientRect().y -
+              (elementSearchIdOut.getBoundingClientRect().y -
                 precanvas.getBoundingClientRect().y) *
                 (precanvas.clientHeight / (precanvas.clientHeight * zoom)) +
               rerouteWidth;
@@ -1079,9 +1075,9 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               "close"
             );
             linecurve += lineCurveSearch;
-            reroute_fix.push(lineCurveSearch);
+            rerouteFix.push(lineCurveSearch);
           } else {
-            const elementSearchId_out = point;
+            const elementSearchIdOut = point;
             elementSearch = points[i + 1];
 
             let eX =
@@ -1095,12 +1091,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 (precanvas.clientHeight / (precanvas.clientHeight * zoom)) +
               rerouteWidth;
             let lineX =
-              (elementSearchId_out.getBoundingClientRect().x -
+              (elementSearchIdOut.getBoundingClientRect().x -
                 precanvas.getBoundingClientRect().x) *
                 (precanvas.clientWidth / (precanvas.clientWidth * zoom)) +
               rerouteWidth;
             let lineY =
-              (elementSearchId_out.getBoundingClientRect().y -
+              (elementSearchIdOut.getBoundingClientRect().y -
                 precanvas.getBoundingClientRect().y) *
                 (precanvas.clientHeight / (precanvas.clientHeight * zoom)) +
               rerouteWidth;
@@ -1114,11 +1110,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               "other"
             );
             linecurve += lineCurveSearch;
-            reroute_fix.push(lineCurveSearch);
+            rerouteFix.push(lineCurveSearch);
           }
         });
         if (shouldRerouteFixCurvature) {
-          reroute_fix.forEach((itempath, i) => {
+          rerouteFix.forEach((itempath, i) => {
             elem.children[i].setAttributeNS(null, "d", itempath);
           });
         } else {
@@ -1131,12 +1127,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     Object.keys(elems).map((item, index) => {
       const elem = elems[Number(item)] as HTMLElement;
       if (elem.querySelector(".point") === null) {
-        let elementSearchId_in = container.querySelector(
+        let elementSearchIdIn = container.querySelector(
           `[id="${id}"]`
         ) as HTMLElement;
 
-        const id_search = elem.classList[2].replace("node_out_", "");
-        const elementSearchId = container.querySelector(`[id="${id_search}"]`);
+        const searchId = elem.classList[2].replace("node_out_", "");
+        const elementSearchId = container.querySelector(`[id="${searchId}"]`);
         const elementSearch = elementSearchId!.querySelectorAll(
           `.${elem.classList[3]}`
         )[0] as HTMLElement;
@@ -1152,17 +1148,17 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             precanvas.getBoundingClientRect().y) *
             precanvasHeightZoom;
 
-        elementSearchId_in = elementSearchId_in!.querySelectorAll(
+        elementSearchIdIn = elementSearchIdIn!.querySelectorAll(
           `.${elem.classList[4]}`
         )[0] as HTMLElement;
         const x =
-          elementSearchId_in.offsetWidth / 2 +
-          (elementSearchId_in.getBoundingClientRect().x -
+          elementSearchIdIn.offsetWidth / 2 +
+          (elementSearchIdIn.getBoundingClientRect().x -
             precanvas.getBoundingClientRect().x) *
             precanvasWidthZoom;
         const y =
-          elementSearchId_in.offsetHeight / 2 +
-          (elementSearchId_in.getBoundingClientRect().y -
+          elementSearchIdIn.offsetHeight / 2 +
+          (elementSearchIdIn.getBoundingClientRect().y -
             precanvas.getBoundingClientRect().y) *
             precanvasHeightZoom;
 
@@ -1181,7 +1177,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         const rerouteFix: string[] = [];
         points.forEach((point, i) => {
           if (i === 0 && points.length - 1 === 0) {
-            let elementSearchId_out = container.querySelector(`[id="${id}"]`);
+            let elementSearchIdOut = container.querySelector(`[id="${id}"]`);
             let elementSearch = point;
 
             let lineX =
@@ -1195,7 +1191,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 precanvasHeightZoom +
               rerouteWidth;
 
-            let elementSearchIn = elementSearchId_out!.querySelectorAll(
+            let elementSearchIn = elementSearchIdOut!.querySelectorAll(
               `.${elementSearch.parentElement!.classList[4]}`
             )[0] as HTMLElement;
             let eX =
@@ -1220,18 +1216,16 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             lineCurve += lineCurveSearch;
             rerouteFix.push(lineCurveSearch);
 
-            elementSearchId_out = point;
-            let id_search =
-              elementSearchId_out.parentElement!.classList[2].replace(
+            elementSearchIdOut = point;
+            let searchId =
+              elementSearchIdOut.parentElement!.classList[2].replace(
                 "node_out_",
                 ""
               );
-            let elementSearchId = container.querySelector(
-              `[id="${id_search}"]`
-            );
+            let elementSearchId = container.querySelector(`[id="${searchId}"]`);
 
             let elementSearchOut = elementSearchId!.querySelectorAll(
-              `.${elementSearchId_out.parentElement!.classList[3]}`
+              `.${elementSearchIdOut.parentElement!.classList[3]}`
             )[0] as HTMLElement;
             lineX =
               elementSearchOut.offsetWidth / 2 +
@@ -1245,12 +1239,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 precanvasHeightZoom;
 
             eX =
-              (elementSearchId_out.getBoundingClientRect().x -
+              (elementSearchIdOut.getBoundingClientRect().x -
                 precanvas.getBoundingClientRect().x) *
                 precanvasWidthZoom +
               rerouteWidth;
             eY =
-              (elementSearchId_out.getBoundingClientRect().y -
+              (elementSearchIdOut.getBoundingClientRect().y -
                 precanvas.getBoundingClientRect().y) *
                 precanvasHeightZoom +
               rerouteWidth;
@@ -1267,18 +1261,16 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             rerouteFix.push(lineCurveSearch);
           } else if (i === 0) {
             // FIRST
-            let elementSearchId_out = point;
-            let id_search =
-              elementSearchId_out.parentElement!.classList[2].replace(
+            let elementSearchIdOut = point;
+            let searchId =
+              elementSearchIdOut.parentElement!.classList[2].replace(
                 "node_out_",
                 ""
               );
-            let elementSearchId = container.querySelector(
-              `[id="${id_search}"]`
-            );
+            let elementSearchId = container.querySelector(`[id="${searchId}"]`);
 
             let elementSearchOut = elementSearchId!.querySelectorAll(
-              `.${elementSearchId_out.parentElement!.classList[3]}`
+              `.${elementSearchIdOut.parentElement!.classList[3]}`
             )[0] as HTMLElement;
             let lineX =
               elementSearchOut.offsetWidth / 2 +
@@ -1292,12 +1284,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 precanvasHeightZoom;
 
             let eX =
-              (elementSearchId_out.getBoundingClientRect().x -
+              (elementSearchIdOut.getBoundingClientRect().x -
                 precanvas.getBoundingClientRect().x) *
                 precanvasWidthZoom +
               rerouteWidth;
             let eY =
-              (elementSearchId_out.getBoundingClientRect().y -
+              (elementSearchIdOut.getBoundingClientRect().y -
                 precanvas.getBoundingClientRect().y) *
                 precanvasHeightZoom +
               rerouteWidth;
@@ -1314,7 +1306,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             rerouteFix.push(lineCurveSearch);
 
             // SECOND
-            elementSearchId_out = point;
+            elementSearchIdOut = point;
             let elementSearch = points[i + 1];
 
             eX =
@@ -1328,12 +1320,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 precanvasHeightZoom +
               rerouteWidth;
             lineX =
-              (elementSearchId_out.getBoundingClientRect().x -
+              (elementSearchIdOut.getBoundingClientRect().x -
                 precanvas.getBoundingClientRect().x) *
                 precanvasWidthZoom +
               rerouteWidth;
             lineY =
-              (elementSearchId_out.getBoundingClientRect().y -
+              (elementSearchIdOut.getBoundingClientRect().y -
                 precanvas.getBoundingClientRect().y) *
                 precanvasHeightZoom +
               rerouteWidth;
@@ -1349,19 +1341,17 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             lineCurve += lineCurveSearch;
             rerouteFix.push(lineCurveSearch);
           } else if (i === points.length - 1) {
-            let elementSearchId_out = point;
+            let elementSearchIdOut = point;
 
-            let id_search =
-              elementSearchId_out.parentElement!.classList[1].replace(
+            let searchId =
+              elementSearchIdOut.parentElement!.classList[1].replace(
                 "node_in_",
                 ""
               );
-            let elementSearchId = container.querySelector(
-              `[id="${id_search}"]`
-            );
+            let elementSearchId = container.querySelector(`[id="${searchId}"]`);
 
             let elementSearchIn = elementSearchId!.querySelectorAll(
-              `.${elementSearchId_out.parentElement!.classList[4]}`
+              `.${elementSearchIdOut.parentElement!.classList[4]}`
             )[0] as HTMLElement;
             let eX =
               elementSearchIn.offsetWidth / 2 +
@@ -1375,12 +1365,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 precanvasHeightZoom;
 
             let lineX =
-              (elementSearchId_out.getBoundingClientRect().x -
+              (elementSearchIdOut.getBoundingClientRect().x -
                 precanvas.getBoundingClientRect().x) *
                 precanvasWidthZoom +
               rerouteWidth;
             let lineY =
-              (elementSearchId_out.getBoundingClientRect().y -
+              (elementSearchIdOut.getBoundingClientRect().y -
                 precanvas.getBoundingClientRect().y) *
                 precanvasHeightZoom +
               rerouteWidth;
@@ -1396,7 +1386,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             lineCurve += lineCurveSearch;
             rerouteFix.push(lineCurveSearch);
           } else {
-            let elementSearchId_out = point;
+            let elementSearchIdOut = point;
             let elementSearch = points[i + 1];
 
             let eX =
@@ -1410,12 +1400,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 precanvasHeightZoom +
               rerouteWidth;
             let lineX =
-              (elementSearchId_out.getBoundingClientRect().x -
+              (elementSearchIdOut.getBoundingClientRect().x -
                 precanvas.getBoundingClientRect().x) *
                 precanvasWidthZoom +
               rerouteWidth;
             let lineY =
-              (elementSearchId_out.getBoundingClientRect().y -
+              (elementSearchIdOut.getBoundingClientRect().y -
                 precanvas.getBoundingClientRect().y) *
                 precanvasHeightZoom +
               rerouteWidth;
@@ -1467,20 +1457,20 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       "circle"
     );
     point.classList.add("point");
-    const new_pos_x =
-      pos_x * (precanvas.clientWidth / (precanvas.clientWidth * zoom)) -
+    const newPositionX =
+      positionX * (precanvas.clientWidth / (precanvas.clientWidth * zoom)) -
       precanvas.getBoundingClientRect().x *
         (precanvas.clientWidth / (precanvas.clientWidth * zoom));
-    const new_pos_y =
-      pos_y * (precanvas.clientHeight / (precanvas.clientHeight * zoom)) -
+    const newPositionY =
+      positionY * (precanvas.clientHeight / (precanvas.clientHeight * zoom)) -
       precanvas.getBoundingClientRect().y *
         (precanvas.clientHeight / (precanvas.clientHeight * zoom));
 
-    point.setAttributeNS(null, "cx", String(new_pos_x));
-    point.setAttributeNS(null, "cy", String(new_pos_y));
+    point.setAttributeNS(null, "cx", String(newPositionX));
+    point.setAttributeNS(null, "cy", String(newPositionY));
     point.setAttributeNS(null, "r", String(rerouteWidth));
 
-    let position_add_array_point = 0;
+    let positionAddArrayPoint = 0;
     if (shouldRerouteFixCurvature) {
       const numberPoints = parentElement.querySelectorAll(".main-path").length;
       const path = document.createElementNS(
@@ -1494,11 +1484,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       if (numberPoints === 1) {
         parentElement.appendChild(point);
       } else {
-        const search_point = Array.from(parentElement.children).indexOf(ele);
-        position_add_array_point = search_point;
+        const searchPoint = Array.from(parentElement.children).indexOf(ele);
+        positionAddArrayPoint = searchPoint;
         parentElement.insertBefore(
           point,
-          parentElement.children[search_point + numberPoints + 1]
+          parentElement.children[searchPoint + numberPoints + 1]
         );
       }
     } else {
@@ -1524,23 +1514,23 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
     if (shouldRerouteFixCurvature) {
       if (
-        position_add_array_point > 0 ||
+        positionAddArrayPoint > 0 ||
         drawflow[module].data[nodeId].outputs[outputClass].connections[
           searchConnection
         ].points!.length !== 0
       ) {
         drawflow[module].data[nodeId].outputs[outputClass].connections[
           searchConnection
-        ].points!.splice(position_add_array_point, 0, {
-          pos_x: new_pos_x,
-          pos_y: new_pos_y,
+        ].points!.splice(positionAddArrayPoint, 0, {
+          positionX: newPositionX,
+          positionY: newPositionY,
         });
       } else {
         drawflow[module].data[nodeId].outputs[outputClass].connections[
           searchConnection
         ].points!.push({
-          pos_x: new_pos_x,
-          pos_y: new_pos_y,
+          positionX: newPositionX,
+          positionY: newPositionY,
         });
       }
 
@@ -1551,8 +1541,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       drawflow[module].data[nodeId].outputs[outputClass].connections[
         searchConnection
       ].points!.push({
-        pos_x: new_pos_x,
-        pos_y: new_pos_y,
+        positionX: newPositionX,
+        positionY: newPositionY,
       });
     }
 
@@ -1618,8 +1608,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     name: string,
     inputs: number,
     outputs: number,
-    positionX: number,
-    positionY: number,
+    nodePositionX: number,
+    nodePositionY: number,
     classList: string,
     data: any,
     ContentNodeComponent: Component
@@ -1667,8 +1657,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     const [nodeProps, setNodeProps] = createSignal({
       inputs,
       outputs,
-      positionX,
-      positionY,
+      positionX: nodePositionX,
+      positionY: nodePositionY,
       classList,
       id: newNodeId,
     });
@@ -1683,22 +1673,22 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       },
     });
 
-    const json_inputs: DrawflowInputs = {};
+    const jsonInputs: DrawflowInputs = {};
     for (let x = 0; x < inputs; ++x) {
-      json_inputs[`input_${x + 1}`] = { connections: [] };
+      jsonInputs[`input_${x + 1}`] = { connections: [] };
     }
-    const json_outputs: DrawflowOutputs = {};
+    const jsonOutputs: DrawflowOutputs = {};
     for (let x = 0; x < outputs; x++) {
-      json_outputs[`output_${x + 1}`] = { connections: [] };
+      jsonOutputs[`output_${x + 1}`] = { connections: [] };
     }
     drawflow[module].data[newNodeId] = {
       id: newNodeId,
       name,
-      data: data,
-      inputs: json_inputs,
-      outputs: json_outputs,
-      pos_x: positionX,
-      pos_y: positionY,
+      data,
+      inputs: jsonInputs,
+      outputs: jsonOutputs,
+      positionX: nodePositionX,
+      positionY: nodePositionY,
     };
 
     dispatch("nodeCreated", newNodeId);
@@ -1831,8 +1821,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   //   node.appendChild(inputs);
   //   node.appendChild(content);
   //   node.appendChild(outputs);
-  //   node.style.top = dataNode.pos_y + "px";
-  //   node.style.left = dataNode.pos_x + "px";
+  //   node.style.top = dataNode.positionY + "px";
+  //   node.style.left = dataNode.positionX + "px";
   //   parent.appendChild(node);
   //   precanvas.appendChild(parent);
   // };
@@ -1869,11 +1859,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               "circle"
             );
             pointElement.classList.add("point");
-            const item_pos_x = point.pos_x;
-            const item_pos_y = point.pos_y;
+            const itemPositionX = point.positionX;
+            const itemPositionY = point.positionY;
 
-            pointElement.setAttributeNS(null, "cx", String(item_pos_x));
-            pointElement.setAttributeNS(null, "cy", String(item_pos_y));
+            pointElement.setAttributeNS(null, "cx", String(itemPositionX));
+            pointElement.setAttributeNS(null, "cy", String(itemPositionY));
             pointElement.setAttributeNS(null, "r", String(rerouteWidth));
 
             ele.appendChild(pointElement);
@@ -2005,21 +1995,21 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         .remove();
     }
     const removeInputs: {
-      id_output: string;
-      id_input: string;
+      outputId: string;
+      inputId: string;
       outputClass: string;
       inputClass: string;
     }[] = [];
     Object.keys(infoNode.inputs[inputClass].connections).map((key, index) => {
-      const id_output = infoNode.inputs[inputClass].connections[index].node;
+      const outputId = infoNode.inputs[inputClass].connections[index].node;
       const outputClass = infoNode.inputs[inputClass].connections[index].input;
-      removeInputs.push({ id_output, id_input: id, outputClass, inputClass });
+      removeInputs.push({ outputId, inputId: id, outputClass, inputClass });
     });
     // Remove connections
     removeInputs.forEach((item, i) => {
       removeSingleConnection(
-        item.id_output,
-        item.id_input,
+        item.outputId,
+        item.inputId,
         item.outputClass,
         item.inputClass
       );
@@ -2104,18 +2094,18 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         .remove();
     }
     const removeOutputs: {
-      id_output: string;
-      id_input: string;
+      outputId: string;
+      inputId: string;
       outputClass: string;
       inputClass: string;
     }[] = [];
     Object.keys(infoNode.outputs[outputClass].connections).map((key, index) => {
-      const id_input = infoNode.outputs[outputClass].connections[index].node;
+      const inputId = infoNode.outputs[outputClass].connections[index].node;
       const inputClass =
         infoNode.outputs[outputClass].connections[index].output;
       removeOutputs.push({
-        id_output: id,
-        id_input,
+        outputId: id,
+        inputId,
         outputClass,
         inputClass,
       });
@@ -2123,8 +2113,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     // Remove connections
     removeOutputs.forEach((item) => {
       removeSingleConnection(
-        item.id_output,
-        item.id_input,
+        item.outputId,
+        item.inputId,
         item.outputClass,
         item.inputClass
       );
@@ -2247,22 +2237,22 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const removeSingleConnection = (
-    id_output: string,
-    id_input: string,
+    outputId: string,
+    inputId: string,
     outputClass: string,
     inputClass: string
   ): boolean => {
-    const nodeOneModule = getModuleFromNodeId(id_output);
-    const nodeTwoModule = getModuleFromNodeId(id_input);
+    const nodeOneModule = getModuleFromNodeId(outputId);
+    const nodeTwoModule = getModuleFromNodeId(inputId);
     // Check nodes in same module.
     if (nodeOneModule !== nodeTwoModule) {
       return false;
     }
     // Check connection exist
-    const exists = drawflow[nodeOneModule].data[id_output].outputs[
+    const exists = drawflow[nodeOneModule].data[outputId].outputs[
       outputClass
     ].connections.findIndex(
-      (item, i) => item.node == id_input && item.output === inputClass
+      (item, i) => item.node == inputId && item.output === inputClass
     );
     if (exists <= -1) {
       return false;
@@ -2271,34 +2261,35 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     if (module === nodeOneModule) {
       container
         .querySelector(
-          `.connection.node_in_${id_input}.node_out_${id_output}.${outputClass}.${inputClass}`
+          `.connection.node_in_${inputId}.node_out_${outputId}.${outputClass}.${inputClass}`
         )!
         .remove();
     }
 
-    const indexOut = drawflow[nodeOneModule].data[id_output].outputs[
+    const indexOut = drawflow[nodeOneModule].data[outputId].outputs[
       outputClass
     ].connections.findIndex(
-      (item, i) => item.node == id_input && item.output === inputClass
+      (item, i) => item.node == inputId && item.output === inputClass
     );
-    drawflow[nodeOneModule].data[id_output].outputs[
+    drawflow[nodeOneModule].data[outputId].outputs[
       outputClass
     ].connections.splice(indexOut, 1);
 
-    const indexIn = drawflow[nodeOneModule].data[id_input].inputs[
+    const indexIn = drawflow[nodeOneModule].data[inputId].inputs[
       inputClass
     ].connections.findIndex(
-      (item, i) => item.node == id_output && item.input === outputClass
+      (item, i) => item.node == outputId && item.input === outputClass
     );
-    drawflow[nodeOneModule].data[id_input].inputs[
-      inputClass
-    ].connections.splice(indexIn, 1);
+    drawflow[nodeOneModule].data[inputId].inputs[inputClass].connections.splice(
+      indexIn,
+      1
+    );
 
     dispatch("connectionRemoved", {
-      outputId: id_output,
-      inputId: id_input,
-      outputClass: outputClass,
-      inputClass: inputClass,
+      outputId,
+      inputId,
+      outputClass,
+      inputClass,
     });
     return true;
   };
@@ -2371,10 +2362,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     dispatch("moduleChanged", name);
     module = name;
     precanvas.innerHTML = "";
-    canvas_x = 0;
-    canvas_y = 0;
-    pos_x = 0;
-    pos_y = 0;
+    canvasX = 0;
+    canvasY = 0;
+    positionX = 0;
+    positionY = 0;
     mouseX = 0;
     mouseY = 0;
     zoom = 1;

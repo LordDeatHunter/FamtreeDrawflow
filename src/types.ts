@@ -22,15 +22,15 @@ export interface DrawflowCallbacks {
   createCurvature: (
     lineX: number,
     lineY: number,
-    end_pos_x: number,
-    end_pos_y: number,
+    endPositionX: number,
+    endPositionY: number,
     curvature: number,
     type: CurvatureType
   ) => string;
   updateConnection: (eX: number, eY: number) => void;
   addConnection: (
-    id_output: string,
-    id_input: string,
+    outputId: string,
+    inputId: string,
     outputClass: string,
     inputClass: string
   ) => void;
@@ -41,8 +41,8 @@ export interface DrawflowCallbacks {
     name: string,
     inputs: number,
     outputs: number,
-    positionX: number,
-    positionY: number,
+    nodePositionX: number,
+    nodePositionY: number,
     classList: string,
     data: any,
     ContentNodeComponent: Component
@@ -89,8 +89,8 @@ export interface DrawflowNodeType {
   inputs: DrawflowInputs;
   name: string;
   outputs: DrawflowOutputs;
-  pos_x: number;
-  pos_y: number;
+  positionX: number;
+  positionY: number;
 }
 
 export type DrawflowOutputs = Record<
@@ -115,8 +115,8 @@ export interface DrawflowOutputConnection {
 }
 
 export interface Point {
-  pos_x: number;
-  pos_y: number;
+  positionX: number;
+  positionY: number;
 }
 
 export type EventListeners = Record<
