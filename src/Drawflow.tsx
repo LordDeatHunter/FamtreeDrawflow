@@ -15,6 +15,7 @@ import {
 } from "./types";
 import DeleteBox from "./components/DeleteBox";
 import "./drawflow.css";
+import { createStore } from "solid-js/store";
 
 interface DrawflowProps {
   drawflowCallbacks?: (callbacks: DrawflowCallbacks) => void;
@@ -603,7 +604,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     }
     contextMenuDel();
     if (selectedNode) {
-      nodeElements()[selectedNode.id].setHasDeleteBox(true);
+      nodeElements()[selectedNode.id].setProps("hasDeleteBox", true);
     } else if (selectedConnection) {
       const style: StyleType = {};
       if (selectedConnection.parentElement!.classList.length > 1) {
@@ -625,7 +626,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
   const contextMenuDel = (): void => {
     if (selectedNode) {
-      nodeElements()[selectedNode.id].setHasDeleteBox(false);
+      nodeElements()[selectedNode.id].setProps("hasDeleteBox", false);
     }
     setDeleteBoxProps({});
   };
@@ -859,10 +860,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     Object.keys(elemsOut).map((item, i) => {
       const elem = elemsOut[Number(item)];
       if (elem.querySelector(".point") === null) {
-        const elementSearchIdOut = container.querySelector(`[id="${id}"]`);
+        const elementSearchIdOut = nodeElements()[id].node;
 
         const searchId = elem.classList[1].replace("node_in_", "");
-        const searchIdElement = container.querySelector(`[id="${searchId}"]`);
+        const searchIdElement = nodeElements()[searchId].node;
 
         const elementSearch = searchIdElement!.querySelectorAll(
           `.${elem.classList[4]}`
@@ -911,7 +912,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
           let elementSearchOut;
           let elementSearch;
           if (i === 0) {
-            let elementSearchIdOut = container.querySelector(`[id="${id}"]`);
+            let elementSearchIdOut = nodeElements()[id].node;
             elementSearch = point;
 
             let eX =
@@ -956,9 +957,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                   "node_in_",
                   ""
                 );
-              const elementSearchId = container.querySelector(
-                `[id="${searchId}"]`
-              );
+              const elementSearchId = nodeElements()[searchId].node;
 
               const elementSearchIn = elementSearchId!.querySelectorAll(
                 `.${elementSearchIdOut.parentElement!.classList[4]}`
@@ -1038,9 +1037,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 "node_in_",
                 ""
               );
-            const elementSearchId = container.querySelector(
-              `[id="${searchId}"]`
-            );
+            const elementSearchId = nodeElements()[searchId].node;
 
             const elementSearchIn = elementSearchId!.querySelectorAll(
               `.${elementSearchIdOut.parentElement!.classList[4]}`
@@ -1127,9 +1124,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     Object.keys(elems).map((item, index) => {
       const elem = elems[Number(item)] as HTMLElement;
       if (elem.querySelector(".point") === null) {
-        let elementSearchIdIn = container.querySelector(
-          `[id="${id}"]`
-        ) as HTMLElement;
+        let elementSearchIdIn = nodeElements()[id].node;
 
         const searchId = elem.classList[2].replace("node_out_", "");
         const elementSearchId = container.querySelector(`[id="${searchId}"]`);
@@ -1653,23 +1648,51 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     //   }
     // }
 
-    const [hasDeleteBox, setHasDeleteBox] = createSignal(false);
-    const [nodeProps, setNodeProps] = createSignal({
+    const [nodeProps, setNodeProps] = createStore<any>({
       inputs,
       outputs,
       positionX: nodePositionX,
       positionY: nodePositionY,
       classList,
       id: newNodeId,
+      hasDeleteBox: false,
     });
     setNodeElements({
       ...nodeElements(),
       [newNodeId]: {
-        node: ContentNodeComponent,
+        node: (
+          <div class="parent-node">
+            <div
+              id={nodeProps.id}
+              class="drawflow-node"
+              style={{
+                left: `${nodeProps.positionX}px`,
+                top: `${nodeProps.positionY}px`,
+              }}
+            >
+              <div class="inputs">
+                <For each={[...Array(nodeProps.inputs).keys()]}>
+                  {/*{() => <div class={`input input_${getUuid()}`} />}*/}
+                  {(input) => <div class={`input input_${input + 1}`} />}
+                </For>
+              </div>
+              <div class="drawflow_content_node">
+                <ContentNodeComponent {...nodeProps} />
+              </div>
+              <div class="outputs">
+                <For each={[...Array(nodeProps.outputs).keys()]}>
+                  {/*{() => <div class={`output output_${getUuid()}`} />}*/}
+                  {(output) => <div class={`output output_${output + 1}`} />}
+                </For>
+              </div>
+              <Show when={nodeProps.hasDeleteBox}>
+                <DeleteBox />
+              </Show>
+            </div>
+          </div>
+        ),
         props: nodeProps,
         setProps: setNodeProps,
-        hasDeleteBox,
-        setHasDeleteBox,
       },
     });
 
@@ -1955,10 +1978,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     if (module === moduleName) {
       //Draw input
       const node = Object.values(nodeElements()).find(
-        (el) => el.props().id === id
+        (el) => el.props.id === id
       );
       if (node) {
-        node.setProps({ ...node.props(), inputs: numInputs + 1 });
+        node.setProps("inputs", numInputs + 1);
       }
       updateConnectionNodes(id);
     }
@@ -1974,10 +1997,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     if (module === moduleName) {
       //Draw output
       const node = Object.values(nodeElements()).find(
-        (el) => el.props().id === id
+        (el) => el.props.id === id
       );
       if (node) {
-        node.setProps({ ...node.props(), outputs: numOutputs + 1 });
+        node.setProps("outputs", numOutputs + 1);
       }
       updateConnectionNodes(id);
     }
@@ -2529,41 +2552,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         }}
       >
         <For each={Object.keys(nodeElements())}>
-          {(nodeId) => {
-            const Node = nodeElements()[nodeId].node;
-            const props = nodeElements()[nodeId].props;
-            return (
-              <div class="parent-node">
-                <div
-                  id={props().id}
-                  class="drawflow-node"
-                  style={{
-                    left: `${props().positionX}px`,
-                    top: `${props().positionY}px`,
-                  }}
-                >
-                  <div class="inputs">
-                    <For each={[...Array(props().inputs).keys()]}>
-                      {(input) => <div class={`input input_${input + 1}`} />}
-                    </For>
-                  </div>
-                  <div class="drawflow_content_node">
-                    {<Node {...props()} />}
-                  </div>
-                  <div class="outputs">
-                    <For each={[...Array(props().outputs).keys()]}>
-                      {(output) => (
-                        <div class={`output output_${output + 1}`} />
-                      )}
-                    </For>
-                  </div>
-                  <Show when={nodeElements()[nodeId]?.hasDeleteBox()}>
-                    <DeleteBox />
-                  </Show>
-                </div>
-              </div>
-            );
-          }}
+          {(nodeId) => nodeElements()[nodeId].node}
         </For>
         <For each={nodeConnections()}>
           {(connection) => {
