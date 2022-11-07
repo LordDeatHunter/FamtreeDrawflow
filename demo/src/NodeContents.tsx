@@ -28,9 +28,16 @@ const NodeContents: Component<NodeContentsProps> = (props) => {
       <button
         style={{ top: "2rem", left: "2rem", "font-size": "1.5rem" }}
         onClick={(_) => {
-          props
-            .drawflowCallbacks()!
-            .removeNodeInput(props.nodeId(), `input_${inputId()}`);
+          props.drawflowCallbacks()!.removeNodeInput(
+            props.nodeId(),
+
+            inputId() !== ""
+              ? `input_${inputId()}`
+              : props
+                  .drawflowCallbacks()
+                  ?.nodeElements()
+                  [props.nodeId()]?.props.inputs.at(-1)
+          );
         }}
       >
         Remove input
@@ -52,7 +59,15 @@ const NodeContents: Component<NodeContentsProps> = (props) => {
         onClick={(_) => {
           props
             .drawflowCallbacks()!
-            .removeNodeOutput(props.nodeId(), `output_${outputId()}`);
+            .removeNodeOutput(
+              props.nodeId(),
+              outputId() !== ""
+                ? `output_${outputId()}`
+                : props
+                    .drawflowCallbacks()
+                    ?.nodeElements()
+                    [props.nodeId()]?.props.outputs.at(-1)
+            );
         }}
       >
         Remove output
