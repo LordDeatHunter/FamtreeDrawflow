@@ -63,6 +63,7 @@ export interface DrawflowCallbacks {
   exportDrawflow: () => DrawflowData;
   importDrawflow: (data: DrawflowData, notify?: boolean) => void;
   getUuid: () => string;
+  nodeElements: () => Record<string, any>;
 }
 
 export interface DrawflowData {

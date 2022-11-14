@@ -428,7 +428,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
       const parentElement = selectedElement!.parentElement!;
 
-      const nodeUpdate = parentElement.classList[2].slice(9);
+      const nodeId = parentElement.classList[2].slice(9);
       const nodeUpdateIn = parentElement.classList[1].slice(8);
       const outputClass = parentElement.classList[3];
       const inputClass = parentElement.classList[4];
@@ -445,7 +445,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         }
       }
 
-      const nodeId = nodeUpdate.slice(5);
       const searchConnection = drawflow[module].data[nodeId].outputs[
         outputClass
       ].connections.findIndex(
@@ -530,9 +529,9 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               ? lastElement.closest(".drawflow_content_node")!.parentElement!.id
               : lastElement.id;
           inputClass =
-            Object.keys(getNodeFromId(inputId.slice(5)).inputs).length === 0
+            Object.keys(getNodeFromId(inputId).inputs).length === 0
               ? ""
-              : "input_1";
+              : Object.keys(getNodeFromId(inputId).inputs)[0];
         } else {
           // Fix connection;
           inputId = lastElement.parentElement!.parentElement!.id;
@@ -1441,7 +1440,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   const createReroutePoint = (ele: Element): void => {
     selectedConnection!.classList.remove("selected");
     const parentElement = ele.parentElement!;
-    const nodeUpdate = selectedConnection!.parentElement!.classList[2].slice(9);
+    const nodeId = selectedConnection!.parentElement!.classList[2].slice(9);
     const nodeUpdateIn =
       selectedConnection!.parentElement!.classList[1].slice(8);
     const outputClass = selectedConnection!.parentElement!.classList[3];
@@ -1490,7 +1489,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       parentElement.appendChild(point);
     }
 
-    const nodeId = nodeUpdate.slice(5);
     const searchConnection = drawflow[module].data[nodeId].outputs[
       outputClass
     ].connections.findIndex(
@@ -1542,18 +1540,17 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     }
 
     dispatch("addReroute", nodeId);
-    updateConnectionNodes(nodeUpdate);
+    updateConnectionNodes(nodeId);
   };
 
   const removeReroutePoint = (ele: Element): void => {
     const parentElement = ele.parentElement!;
-    const nodeUpdate = parentElement.classList[2].slice(9);
+    const nodeId = parentElement.classList[2].slice(9);
     const nodeUpdateIn = parentElement.classList[1].slice(8);
     const outputClass = parentElement.classList[3];
     const inputClass = parentElement.classList[4];
 
     let numberPointPosition = Array.from(parentElement.children).indexOf(ele);
-    const nodeId = nodeUpdate.slice(5);
     const searchConnection = drawflow[module].data[nodeId].outputs[
       outputClass
     ].connections.findIndex(
@@ -1578,7 +1575,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
     ele.remove();
     dispatch("removeReroute", nodeId);
-    updateConnectionNodes(nodeUpdate);
+    updateConnectionNodes(nodeId);
   };
 
   const getNodeFromId = (id: string): DrawflowNodeType => {
@@ -1648,9 +1645,18 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     //   }
     // }
 
+    const inputElements: DrawflowInputs = {};
+    for (let x = 0; x < inputs; ++x) {
+      inputElements[`input_${getUuid()}`] = { connections: [] };
+    }
+    const outputElements: DrawflowOutputs = {};
+    for (let x = 0; x < outputs; x++) {
+      outputElements[`output_${getUuid()}`] = { connections: [] };
+    }
+
     const [nodeProps, setNodeProps] = createStore<any>({
-      inputs,
-      outputs,
+      inputs: Object.keys(inputElements),
+      outputs: Object.keys(outputElements),
       positionX: nodePositionX,
       positionY: nodePositionY,
       classList,
@@ -1671,18 +1677,16 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               }}
             >
               <div class="inputs">
-                <For each={[...Array(nodeProps.inputs).keys()]}>
-                  {/*{() => <div class={`input input_${getUuid()}`} />}*/}
-                  {(input) => <div class={`input input_${input + 1}`} />}
+                <For each={nodeProps.inputs}>
+                  {(input) => <div class={`input ${input}`} />}
                 </For>
               </div>
               <div class="drawflow_content_node">
                 <ContentNodeComponent {...nodeProps} />
               </div>
               <div class="outputs">
-                <For each={[...Array(nodeProps.outputs).keys()]}>
-                  {/*{() => <div class={`output output_${getUuid()}`} />}*/}
-                  {(output) => <div class={`output output_${output + 1}`} />}
+                <For each={nodeProps.outputs}>
+                  {(output) => <div class={`output ${output}`} />}
                 </For>
               </div>
               <Show when={nodeProps.hasDeleteBox}>
@@ -1696,20 +1700,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       },
     });
 
-    const jsonInputs: DrawflowInputs = {};
-    for (let x = 0; x < inputs; ++x) {
-      jsonInputs[`input_${x + 1}`] = { connections: [] };
-    }
-    const jsonOutputs: DrawflowOutputs = {};
-    for (let x = 0; x < outputs; x++) {
-      jsonOutputs[`output_${x + 1}`] = { connections: [] };
-    }
     drawflow[module].data[newNodeId] = {
       id: newNodeId,
       name,
       data,
-      inputs: jsonInputs,
-      outputs: jsonOutputs,
+      inputs: inputElements,
+      outputs: outputElements,
       positionX: nodePositionX,
       positionY: nodePositionY,
     };
@@ -1973,40 +1969,30 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   // };
   const addNodeInput = (id: string): void => {
     const moduleName = getModuleFromNodeId(id);
-    const infoNode = getNodeFromId(id);
-    const numInputs = Object.keys(infoNode.inputs).length;
+    const inputId = `input_${getUuid()}`;
     if (module === moduleName) {
       //Draw input
-      const node = Object.values(nodeElements()).find(
-        (el) => el.props.id === id
-      );
+      const node = nodeElements()[id];
       if (node) {
-        node.setProps("inputs", numInputs + 1);
+        node.setProps("inputs", [...node.props.inputs, inputId]);
       }
       updateConnectionNodes(id);
     }
-    drawflow[moduleName].data[id].inputs[`input_${numInputs + 1}`] = {
-      connections: [],
-    };
+    drawflow[moduleName].data[id].inputs[inputId] = { connections: [] };
   };
 
   const addNodeOutput = (id: string): void => {
     const moduleName = getModuleFromNodeId(id);
-    const infoNode = getNodeFromId(id);
-    const numOutputs = Object.keys(infoNode.outputs).length;
+    const outputId = `output_${getUuid()}`;
     if (module === moduleName) {
       //Draw output
-      const node = Object.values(nodeElements()).find(
-        (el) => el.props.id === id
-      );
+      const node = nodeElements()[id];
       if (node) {
-        node.setProps("outputs", numOutputs + 1);
+        node.setProps("outputs", [...node.props.outputs, outputId]);
       }
       updateConnectionNodes(id);
     }
-    drawflow[moduleName].data[id].outputs[`output_${numOutputs + 1}`] = {
-      connections: [],
-    };
+    drawflow[moduleName].data[id].outputs[outputId] = { connections: [] };
   };
 
   const removeNodeInput = (id: string, inputClass: string): void => {
@@ -2014,8 +2000,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     const infoNode = getNodeFromId(id);
     if (module === moduleName) {
       container
-        .querySelector(`[id="${id}"] .inputs .input.${inputClass}`)!
-        .remove();
+        .querySelector(`[id="${id}"] .inputs .input.${inputClass}`)
+        ?.remove();
     }
     const removeInputs: {
       outputId: string;
@@ -2023,11 +2009,14 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       outputClass: string;
       inputClass: string;
     }[] = [];
-    Object.keys(infoNode.inputs[inputClass].connections).map((key, index) => {
-      const outputId = infoNode.inputs[inputClass].connections[index].node;
-      const outputClass = infoNode.inputs[inputClass].connections[index].input;
-      removeInputs.push({ outputId, inputId: id, outputClass, inputClass });
-    });
+    infoNode.inputs[inputClass]?.connections.forEach((value) =>
+      removeInputs.push({
+        outputId: value.node,
+        inputId: id,
+        outputClass: value.input,
+        inputClass,
+      })
+    );
     // Remove connections
     removeInputs.forEach((item, i) => {
       removeSingleConnection(
@@ -2037,74 +2026,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         item.inputClass
       );
     });
-
     delete drawflow[moduleName].data[id].inputs[inputClass];
-
-    // TODO: change how input/output ids work
-    // Update connection
-    // const connections: { connections: DrawflowInputConnection[] }[] = [];
-    // const connectionsInputs = drawflow[moduleName].data[id].inputs;
-    // Object.keys(connectionsInputs).map((key, index) => {
-    //   connections.push(connectionsInputs[key]);
-    // });
-    // drawflow[moduleName].data[id].inputs = {};
-    // const input_class_id = inputClass.slice(6);
-    // let nodeUpdates: DrawflowInputConnection[] = [];
-    // connections.forEach((item, i) => {
-    //   item.connections.forEach((itemx, f) => {
-    //     nodeUpdates.push(itemx);
-    //   });
-    //   drawflow[moduleName].data[id].inputs[`input_${i + 1}`] = item;
-    // });
-    // let nodeUpdatesSet = new Set(nodeUpdates.map((e) => JSON.stringify(e)));
-    // nodeUpdates = Array.from(nodeUpdatesSet).map((e) => JSON.parse(e));
-    //
-    // if (module === moduleName) {
-    //   const eles = container.querySelectorAll(`#${id} .inputs .input`);
-    //   eles.forEach((item, i) => {
-    //     const id_class = Number(item.classList[1].slice(6));
-    //     if (parseInt(input_class_id) < id_class) {
-    //       item.classList.remove(`input_${id_class}`);
-    //       item.classList.add(`input_${id_class - 1}`);
-    //     }
-    //   });
-    // }
-    //
-    // nodeUpdates.forEach((itemx, i) => {
-    //   drawflow[moduleName].data[itemx.node].outputs[
-    //     itemx.input
-    //   ].connections.forEach((itemz, g) => {
-    //     if (itemz.node == id) {
-    //       const output_id = Number(itemz.output.slice(6));
-    //       if (parseInt(input_class_id) < output_id) {
-    //         if (module === moduleName) {
-    //           const ele = container.querySelector(
-    //             `.connection.node_in_${id}.node_out_${itemx.node}.${itemx.input}.input_${output_id}`
-    //           ) as HTMLElement;
-    //           ele.classList.remove(`input_${output_id}`);
-    //           ele.classList.add(`input_${output_id - 1}`);
-    //         }
-    //         if (itemz.points) {
-    //           drawflow[moduleName].data[itemx.node].outputs[
-    //             itemx.input
-    //           ].connections[g] = {
-    //             node: itemz.node,
-    //             output: `input_${output_id - 1}`,
-    //             points: itemz.points,
-    //           };
-    //         } else {
-    //           drawflow[moduleName].data[itemx.node].outputs[
-    //             itemx.input
-    //           ].connections[g] = {
-    //             node: itemz.node,
-    //             output: `input_${output_id - 1}`,
-    //           };
-    //         }
-    //       }
-    //     }
-    //   });
-    // });
-
+    nodeElements()[id].setProps(
+      "inputs",
+      nodeElements()[id].props.inputs.filter(
+        (input: string) => input !== inputClass
+      )
+    );
     updateConnectionNodes(id);
   };
 
@@ -2114,7 +2042,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     if (module === moduleName) {
       container
         .querySelector(`[id="${id}"] .outputs .output.${outputClass}`)!
-        .remove();
+        ?.remove();
     }
     const removeOutputs: {
       outputId: string;
@@ -2122,17 +2050,14 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       outputClass: string;
       inputClass: string;
     }[] = [];
-    Object.keys(infoNode.outputs[outputClass].connections).map((key, index) => {
-      const inputId = infoNode.outputs[outputClass].connections[index].node;
-      const inputClass =
-        infoNode.outputs[outputClass].connections[index].output;
+    infoNode.outputs[outputClass]?.connections.forEach((value) =>
       removeOutputs.push({
         outputId: id,
-        inputId,
+        inputId: value.node,
         outputClass,
-        inputClass,
-      });
-    });
+        inputClass: value.output,
+      })
+    );
     // Remove connections
     removeOutputs.forEach((item) => {
       removeSingleConnection(
@@ -2142,76 +2067,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         item.inputClass
       );
     });
-
     delete drawflow[moduleName].data[id].outputs[outputClass];
-
-    // TODO: change how input/output ids work
-    // Update connection
-    // const connections: { connections: DrawflowOutputConnection[] }[] = [];
-    // const connectionOutputs = drawflow[moduleName].data[id].outputs;
-    // Object.keys(connectionOutputs).forEach((key) => {
-    //   connections.push(connectionOutputs[Number(key)]);
-    // });
-    // drawflow[moduleName].data[id].outputs = {};
-    // const output_class_id = outputClass.slice(7);
-    // let nodeUpdates: DrawflowOutputConnection[] = [];
-    // connections.forEach((item, i) => {
-    //   item.connections.forEach((itemx, f) => {
-    //     nodeUpdates.push({ node: itemx.node, output: itemx.output });
-    //   });
-    //   drawflow[moduleName].data[id].outputs[`output_${i + 1}`] = item;
-    // });
-    // let nodeUpdatesSet = new Set(nodeUpdates.map((e) => JSON.stringify(e)));
-    // nodeUpdates = Array.from(nodeUpdatesSet).map((e) => JSON.parse(e));
-    //
-    // if (module === moduleName) {
-    //   const eles = container.querySelectorAll(`#node-${id} .outputs .output`);
-    //   eles.forEach((item) => {
-    //     const id_class = item.classList[1].slice(7);
-    //     if (parseInt(output_class_id) < parseInt(id_class)) {
-    //       item.classList.remove(`output_${id_class}`);
-    //       item.classList.add(`output_${Number(id_class) - 1}`);
-    //     }
-    //   });
-    // }
-    //
-    // nodeUpdates.forEach((itemx, i) => {
-    //   drawflow[moduleName].data[itemx.node].inputs[
-    //     itemx.output
-    //   ].connections.forEach((itemz, g) => {
-    //     if (itemz.node == id) {
-    //       const input_id = Number(itemz.input.slice(7));
-    //       if (parseInt(output_class_id) < input_id) {
-    //         if (module === moduleName) {
-    //           const ele = container.querySelector(
-    //             `.connection.node_in_${itemx.node}.node_out_${id}.output_${input_id}.${itemx.output}`
-    //           )!;
-    //           ele.classList.remove(`output_${input_id}`);
-    //           ele.classList.remove(itemx.output);
-    //           ele.classList.add(`output_${input_id - 1}`);
-    //           ele.classList.add(itemx.output);
-    //         }
-    //         if (itemz.points) {
-    //           drawflow[moduleName].data[itemx.node].inputs[
-    //             itemx.output
-    //           ].connections[g] = {
-    //             node: itemz.node,
-    //             input: `output_${input_id - 1}`,
-    //             points: itemz.points,
-    //           };
-    //         } else {
-    //           drawflow[moduleName].data[itemx.node].inputs[
-    //             itemx.output
-    //           ].connections[g] = {
-    //             node: itemz.node,
-    //             input: `output_${input_id - 1}`,
-    //           };
-    //         }
-    //       }
-    //     }
-    //   });
-    // });
-
+    nodeElements()[id].setProps(
+      "outputs",
+      nodeElements()[id].props.outputs.filter(
+        (output: string) => output !== outputClass
+      )
+    );
     updateConnectionNodes(id);
   };
 
@@ -2516,6 +2378,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       exportDrawflow,
       importDrawflow,
       getUuid,
+      nodeElements,
     });
     load();
   });
