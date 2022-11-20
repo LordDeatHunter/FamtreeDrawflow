@@ -78,8 +78,24 @@ export interface DrawflowModuleData {
 }
 
 export interface NodeConnectionProps {
-  connectionsString?: string;
-  path?: string;
+  points?: PointProps[];
+  paths?: PathProps[];
+  pathSelected?: boolean;
+  inputId?: string;
+  outputId?: string;
+  inputClass?: string;
+  outputClass?: string;
+}
+
+export interface PathProps {
+  path: string;
+  id: string;
+}
+
+export interface PointProps {
+  cx: number;
+  cy: number;
+  r: number;
 }
 
 export type StyleType = Record<string, string | number | undefined>;

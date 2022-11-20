@@ -11,11 +11,13 @@ import {
   DrawflowOutputs,
   EventListeners,
   NodeConnectionProps,
+  PathProps,
   StyleType,
 } from "./types";
 import DeleteBox from "./components/DeleteBox";
 import "./drawflow.css";
 import { createStore } from "solid-js/store";
+import ConnectionNode from "./components/ConnectionNode";
 
 interface DrawflowProps {
   drawflowCallbacks?: (callbacks: DrawflowCallbacks) => void;
@@ -23,14 +25,11 @@ interface DrawflowProps {
 
 const Drawflow: Component<DrawflowProps> = (props) => {
   const [nodeElements, setNodeElements] = createSignal<Record<string, any>>({});
-  const [nodeConnections, setNodeConnections] = createSignal<
-    {
-      setProps: (props: NodeConnectionProps) => void;
-      props: () => NodeConnectionProps;
-    }[]
-  >([]);
+  const [nodeConnections, setNodeConnections] = createSignal<any[]>([]);
   const [precanvasTransform, setPrecanvasTransform] = createSignal<string>("");
   const getConnectionElement = () => nodeConnections().slice(-1)[0];
+  const getSelectedConnectionElement = () =>
+    nodeConnections().find((connection) => !!connection.props.pathSelected);
   let events: EventListeners = {};
   let container: HTMLDivElement;
   let precanvas: HTMLDivElement;
@@ -141,14 +140,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const removeRerouteConnectionSelected = () => {
-    dispatch("connectionUnselected", true);
-    if (shouldRerouteFixCurvature) {
-      selectedConnection!
-        .parentElement!.querySelectorAll(".main-path")
-        .forEach((item) => {
-          item.classList.remove("selected");
-        });
+    selectedConnection?.classList.remove("selected");
+    if (getSelectedConnectionElement()) {
+      dispatch("connectionUnselected", true);
+      getSelectedConnectionElement().setProps("pathSelected", false);
     }
+    selectedConnection = null;
   };
 
   const onDrawflowNodeClick = (e: MouseEvent | TouchEvent) => {
@@ -158,11 +155,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         dispatch("nodeUnselected", true);
       }
     }
-    if (selectedConnection != null) {
-      selectedConnection.classList.remove("selected");
-      removeRerouteConnectionSelected();
-      selectedConnection = null;
-    }
+    removeRerouteConnectionSelected();
     if (selectedNode != selectedElement) {
       dispatch("nodeSelected", selectedElement?.id);
     }
@@ -195,48 +188,30 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   const onOutputClick = (e: MouseEvent | TouchEvent) => {
     connection = true;
     unselectNode();
-    if (selectedConnection != null) {
-      selectedConnection.classList.remove("selected");
-      removeRerouteConnectionSelected();
-      selectedConnection = null;
-    }
+    removeRerouteConnectionSelected();
     drawConnection(e.target as HTMLElement);
   };
 
   const onDrawflowClick = (e: MouseEvent | TouchEvent) => {
     unselectNode();
-    if (selectedConnection != null) {
-      selectedConnection.classList.remove("selected");
-      removeRerouteConnectionSelected();
-      selectedConnection = null;
-    }
+    removeRerouteConnectionSelected();
     isEditorSelected = true;
   };
 
-  const onMainPathClick = (e: MouseEvent | TouchEvent) => {
+  const onMainPathClick = (id: string): void => {
     unselectNode();
-    if (selectedConnection != null) {
-      selectedConnection.classList.remove("selected");
-      removeRerouteConnectionSelected();
-      selectedConnection = null;
-    }
+    removeRerouteConnectionSelected();
     selectedConnection = selectedElement as unknown as SVGPathElement;
-    selectedConnection!.classList.add("selected");
-    const classListConnection = selectedConnection!.parentElement!.classList;
-    if (classListConnection.length > 1) {
+    selectedConnection?.classList.add("selected");
+    const classListConnection = selectedConnection?.parentElement!.classList;
+    getConnectionElement().setProps("pathSelected", true);
+    if (classListConnection?.length > 1) {
       dispatch("connectionSelected", {
         outputId: classListConnection[2].slice(9),
         inputId: classListConnection[1].slice(8),
         outputClass: classListConnection[3],
         inputClass: classListConnection[4],
       });
-      if (shouldRerouteFixCurvature) {
-        selectedConnection!
-          .parentElement!.querySelectorAll(".main-path")
-          .forEach((item) => {
-            item.classList.add("selected");
-          });
-      }
     }
   };
 
@@ -259,11 +234,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       selectedNode = null;
       dispatch("nodeUnselected", true);
     }
-    if (selectedConnection != null) {
-      selectedConnection.classList.remove("selected");
-      removeRerouteConnectionSelected();
-      selectedConnection = null;
-    }
+    removeRerouteConnectionSelected();
   };
 
   const click = (e: MouseEvent | TouchEvent) => {
@@ -322,10 +293,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       }
       case "drawflow": {
         onDrawflowClick(e);
-        break;
-      }
-      case "main-path": {
-        onMainPathClick(e);
         break;
       }
       case "point": {
@@ -547,10 +514,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             ).length === 0
           ) {
             // Connection doesn't exist, save connection
-            getConnectionElement().setProps({
-              ...getConnectionElement().props(),
-              connectionsString: `node_in_${inputId} node_out_${outputId} ${outputClass} ${inputClass}`,
-            });
+            getConnectionElement().setProps("inputId", inputId);
+            getConnectionElement().setProps("outputId", outputId);
+            getConnectionElement().setProps("inputClass", inputClass);
+            getConnectionElement().setProps("outputClass", outputClass);
 
             drawflow[module].data[outputId].outputs[
               outputClass
@@ -744,7 +711,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const drawConnection = (ele: Element): void => {
-    const [props, setProps] = createSignal({});
+    const [props, setProps] = createStore<NodeConnectionProps>({
+      paths: [],
+      points: [],
+    });
     setNodeConnections([...nodeConnections(), { props, setProps }]);
     const outputId = ele.parentElement?.parentElement?.id;
     const outputClass = ele.classList[1];
@@ -790,10 +760,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       curvature,
       "openclose"
     );
-    getConnectionElement().setProps({
-      ...getConnectionElement().props(),
-      path: lineCurve,
-    });
+    const connectionElement = getConnectionElement();
+    connectionElement.setProps("paths", [
+      ...connectionElement.props.paths.slice(0, -1),
+      { path: lineCurve, id: connectionElement.props.paths.slice(-1) },
+    ]);
   };
 
   const addConnection = (
@@ -827,9 +798,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     });
     if (module === nodeOneModule) {
       //Draw connection
-      const [props, setProps] = createSignal({
-        connectionsString: `connection node_in_${inputId} node_out_${outputId} ${outputClass} ${inputClass}`,
-        path: "",
+      const [props, setProps] = createStore<NodeConnectionProps>({
+        points: [],
+        paths: [],
+        inputId,
+        outputId,
+        inputClass,
+        outputClass,
       });
       setNodeConnections([...nodeConnections(), { props, setProps }]);
 
@@ -1428,29 +1403,20 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const onDoubleClick = (e: MouseEvent | TouchEvent): void => {
-    if (selectedConnection != null && reroute) {
-      createReroutePoint(selectedConnection);
-    }
     const target = e.target as Element;
     if (target.classList[0] === "point") {
       removeReroutePoint(target);
     }
   };
 
-  const createReroutePoint = (ele: Element): void => {
-    selectedConnection!.classList.remove("selected");
-    const parentElement = ele.parentElement!;
-    const nodeId = selectedConnection!.parentElement!.classList[2].slice(9);
-    const nodeUpdateIn =
-      selectedConnection!.parentElement!.classList[1].slice(8);
-    const outputClass = selectedConnection!.parentElement!.classList[3];
-    const inputClass = selectedConnection!.parentElement!.classList[4];
-    selectedConnection = null;
-    const point = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "circle"
-    );
-    point.classList.add("point");
+  const createReroutePoint = (id: string): void => {
+    // TODO: reroute check
+    const selectedConnection = getSelectedConnectionElement();
+    selectedConnection.setProps("pathSelected", false);
+    const nodeId = selectedConnection.props.outputId;
+    const nodeUpdateIn = selectedConnection.props.inputId;
+    const outputClass = selectedConnection.props.outputClass;
+    const inputClass = selectedConnection.props.inputClass;
     const newPositionX =
       positionX * (precanvas.clientWidth / (precanvas.clientWidth * zoom)) -
       precanvas.getBoundingClientRect().x *
@@ -1460,33 +1426,39 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       precanvas.getBoundingClientRect().y *
         (precanvas.clientHeight / (precanvas.clientHeight * zoom));
 
-    point.setAttributeNS(null, "cx", String(newPositionX));
-    point.setAttributeNS(null, "cy", String(newPositionY));
-    point.setAttributeNS(null, "r", String(rerouteWidth));
+    const point = {
+      cx: newPositionX,
+      cy: newPositionY,
+      r: rerouteWidth,
+    };
 
     let positionAddArrayPoint = 0;
     if (shouldRerouteFixCurvature) {
-      const numberPoints = parentElement.querySelectorAll(".main-path").length;
-      const path = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path"
-      );
-      path.classList.add("main-path");
-      path.setAttributeNS(null, "d", "");
-
-      parentElement.insertBefore(path, parentElement.children[numberPoints]);
-      if (numberPoints === 1) {
-        parentElement.appendChild(point);
-      } else {
-        const searchPoint = Array.from(parentElement.children).indexOf(ele);
-        positionAddArrayPoint = searchPoint;
-        parentElement.insertBefore(
+      getConnectionElement().setProps("paths", [
+        ...getConnectionElement().props.paths,
+        { id: getUuid(), path: "" },
+      ]);
+      if (getConnectionElement().props.paths.length === 2) {
+        getConnectionElement().setProps("points", [
+          ...getConnectionElement().props.points,
           point,
-          parentElement.children[searchPoint + numberPoints + 1]
+        ]);
+      } else {
+        const searchPoint = getConnectionElement().props.paths.findIndex(
+          (path: PathProps) => id === path.id
         );
+        const pointList = getConnectionElement().props.points;
+        getConnectionElement().setProps("points", [
+          ...pointList.slice(0, searchPoint),
+          point,
+          ...pointList.slice(searchPoint),
+        ]);
       }
     } else {
-      parentElement.appendChild(point);
+      getConnectionElement().setProps("points", [
+        ...getConnectionElement().props.points,
+        point,
+      ]);
     }
 
     const searchConnection = drawflow[module].data[nodeId].outputs[
@@ -1527,9 +1499,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         });
       }
 
-      parentElement.querySelectorAll(".main-path").forEach((item, i) => {
-        item.classList.remove("selected");
-      });
+      getConnectionElement().setProps("pathSelected", false);
     } else {
       drawflow[module].data[nodeId].outputs[outputClass].connections[
         searchConnection
@@ -2418,15 +2388,15 @@ const Drawflow: Component<DrawflowProps> = (props) => {
           {(nodeId) => nodeElements()[nodeId].node}
         </For>
         <For each={nodeConnections()}>
-          {(connection) => {
-            return (
-              <svg class={`connection ${connection.props().connectionsString}`}>
-                <path class="main-path" d={connection.props().path} />
-              </svg>
-            );
-          }}
+          {(connection) => (
+            <ConnectionNode
+              {...connection.props}
+              onMainPathClick={onMainPathClick}
+              onMainPathDoubleClick={createReroutePoint}
+            />
+          )}
         </For>
-        <Show when={Object.keys(deleteBoxProps()).length > 0}>
+        <Show when={Object.keys(deleteBoxProps()).length > 0} keyed>
           <DeleteBox style={deleteBoxProps().style} />
         </Show>
       </div>
