@@ -93,6 +93,8 @@ export interface PathProps {
 }
 
 export interface PointProps {
+  id: string;
+  selected?: boolean;
   cx: number;
   cy: number;
   r: number;

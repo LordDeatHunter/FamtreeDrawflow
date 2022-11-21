@@ -1,9 +1,11 @@
-import { Component, createSignal, For } from "solid-js";
+import { Component, For } from "solid-js";
 import { PathProps, PointProps } from "../types";
 
 export interface ConnectionNodeProps {
   onMainPathClick?: (id: string) => void;
   onMainPathDoubleClick?: (id: string) => void;
+  onPointDoubleClick?: (id: string) => void;
+  onPointClick?: (id: string) => void;
   pathSelected?: boolean;
   paths?: PathProps[];
   points?: PointProps[];
@@ -14,8 +16,12 @@ export interface ConnectionNodeProps {
 }
 
 const ConnectionNode: Component<ConnectionNodeProps> = (props) => {
-  const { onMainPathClick = () => {}, onMainPathDoubleClick = () => {} } =
-    props;
+  const {
+    onMainPathClick = () => {},
+    onMainPathDoubleClick = () => {},
+    onPointDoubleClick = () => {},
+    onPointClick = () => {},
+  } = props;
 
   return (
     <svg
@@ -26,7 +32,14 @@ const ConnectionNode: Component<ConnectionNodeProps> = (props) => {
           <path
             class="main-path"
             d={path.path}
-            onClick={(e) => onMainPathClick(path.id)}
+            onMouseDown={(e) => {
+              onMainPathClick(path.id);
+              e.preventDefault();
+            }}
+            onTouchStart={(e) => {
+              onMainPathClick(path.id);
+              e.preventDefault();
+            }}
             onDblClick={() => onMainPathDoubleClick(path.id)}
             classList={{
               selected: !!props.pathSelected,
@@ -36,7 +49,29 @@ const ConnectionNode: Component<ConnectionNodeProps> = (props) => {
       </For>
       <For each={props?.points ?? []}>
         {(point) => (
-          <circle class="point" cx={point.cx} cy={point.cy} r={point.r} />
+          <circle
+            onMouseDown={(e) => {
+              if (e.detail === 2 && e.button === 0) {
+                onPointDoubleClick(point.id);
+              } else {
+                onPointClick(point.id);
+              }
+            }}
+            onTouchStart={(e) => {
+              if (e.detail === 2) {
+                onPointDoubleClick(point.id);
+              } else {
+                onPointClick(point.id);
+              }
+            }}
+            class="point"
+            cx={point.cx}
+            cy={point.cy}
+            r={point.r}
+            classList={{
+              selected: !!point.selected,
+            }}
+          />
         )}
       </For>
     </svg>

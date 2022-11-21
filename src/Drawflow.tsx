@@ -12,6 +12,7 @@ import {
   EventListeners,
   NodeConnectionProps,
   PathProps,
+  PointProps,
   StyleType,
 } from "./types";
 import DeleteBox from "./components/DeleteBox";
@@ -30,6 +31,16 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   const getConnectionElement = () => nodeConnections().slice(-1)[0];
   const getSelectedConnectionElement = () =>
     nodeConnections().find((connection) => !!connection.props.pathSelected);
+  const getSelectedPointElement = () =>
+    nodeConnections().find(
+      (connection) =>
+        !!connection.props.points.some((point: PointProps) => !!point.selected)
+    );
+  const getPointElement = (id: string) =>
+    nodeConnections().find(
+      (connection) =>
+        !!connection.props.points.some((point: PointProps) => id === point.id)
+    );
   let events: EventListeners = {};
   let container: HTMLDivElement;
   let precanvas: HTMLDivElement;
@@ -215,9 +226,16 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     }
   };
 
-  const onPointClick = (e: MouseEvent | TouchEvent) => {
+  const onPointClick = (id: string) => {
     dragPoint = true;
-    selectedElement!.classList.add("selected");
+    const pointElement = getPointElement(id);
+    pointElement.setProps(
+      "points",
+      pointElement.props.points.map((point: PointProps) => ({
+        ...point,
+        selected: point.id === id,
+      }))
+    );
   };
 
   const onDrawflowDeleteClick = (e: MouseEvent | TouchEvent) => {
@@ -240,6 +258,15 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   const click = (e: MouseEvent | TouchEvent) => {
     const target = e.target as HTMLElement;
     dispatch("click", e);
+    nodeConnections().forEach((node) =>
+      node.setProps(
+        "points",
+        node.props.points.map((point: PointProps) => ({
+          ...point,
+          selected: false,
+        }))
+      )
+    );
     if (editorMode === "fixed") {
       //return false;
       e.preventDefault();
@@ -293,10 +320,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       }
       case "drawflow": {
         onDrawflowClick(e);
-        break;
-      }
-      case "point": {
-        onPointClick(e);
         break;
       }
       case "drawflow-delete": {
@@ -375,9 +398,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     }
 
     if (dragPoint) {
-      // What the hell is this even doing here??
-      // x = (positionX - eventPositionX) * precanvas.clientWidth / (precanvas.clientWidth * zoom);
-      // y = (positionY - eventPositionY) * precanvas.clientHeight / (precanvas.clientHeight * zoom);
       positionX = eventPositionX;
       positionY = eventPositionY;
 
@@ -390,27 +410,26 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         precanvas.getBoundingClientRect().y *
           (precanvas.clientHeight / (precanvas.clientHeight * zoom));
 
-      selectedElement!.setAttributeNS(null, "cx", String(draggedPositionX));
-      selectedElement!.setAttributeNS(null, "cy", String(draggedPositionY));
+      const pointElement = getSelectedPointElement();
+      const selectedPoint = pointElement.props.points.find(
+        (point: PointProps) => !!point?.selected
+      );
+      pointElement.setProps(
+        "points",
+        pointElement.props.points.map((point: PointProps) => {
+          const modifiedPoint = { ...point };
+          if (modifiedPoint.id === selectedPoint!.id) {
+            modifiedPoint.cx = draggedPositionX;
+            modifiedPoint.cy = draggedPositionY;
+          }
+          return modifiedPoint;
+        })
+      );
 
-      const parentElement = selectedElement!.parentElement!;
-
-      const nodeId = parentElement.classList[2].slice(9);
-      const nodeUpdateIn = parentElement.classList[1].slice(8);
-      const outputClass = parentElement.classList[3];
-      const inputClass = parentElement.classList[4];
-
-      let numberPointPosition =
-        Array.from(parentElement.children).indexOf(selectedElement!) - 1;
-
-      if (shouldRerouteFixCurvature) {
-        const numberMainPath =
-          parentElement.querySelectorAll(".main-path").length - 1;
-        numberPointPosition -= numberMainPath;
-        if (numberPointPosition < 0) {
-          numberPointPosition = 0;
-        }
-      }
+      const nodeId = pointElement.props.outputId;
+      const nodeUpdateIn = pointElement.props.inputId;
+      const outputClass = pointElement.props.outputClass;
+      const inputClass = pointElement.props.inputClass;
 
       const searchConnection = drawflow[module].data[nodeId].outputs[
         outputClass
@@ -420,14 +439,12 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
       drawflow[module].data[nodeId].outputs[outputClass].connections[
         searchConnection
-      ].points![numberPointPosition] = {
+      ].points![pointElement.props.points.indexOf(selectedPoint.id) - 1] = {
         positionX: draggedPositionX,
         positionY: draggedPositionY,
       };
 
-      const parentSelected = parentElement.classList[2].slice(9);
-
-      updateConnectionNodes(parentSelected);
+      updateConnectionNodes(nodeId);
     }
 
     if (e.type === "touchmove") {
@@ -462,15 +479,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     }
 
     if (dragPoint) {
-      selectedElement!.classList.remove("selected");
       if (
         startPositionX != eventPositionX ||
         startPositionY != eventPositionY
       ) {
-        dispatch(
-          "rerouteMoved",
-          selectedElement!.parentElement!.classList[2].slice(9)
-        );
+        dispatch("rerouteMoved", getSelectedPointElement().props.outputId);
       }
     }
 
@@ -1402,13 +1415,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     });
   };
 
-  const onDoubleClick = (e: MouseEvent | TouchEvent): void => {
-    const target = e.target as Element;
-    if (target.classList[0] === "point") {
-      removeReroutePoint(target);
-    }
-  };
-
   const createReroutePoint = (id: string): void => {
     // TODO: reroute check
     const selectedConnection = getSelectedConnectionElement();
@@ -1430,6 +1436,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       cx: newPositionX,
       cy: newPositionY,
       r: rerouteWidth,
+      selected: false,
+      id: getUuid(),
     };
 
     let positionAddArrayPoint = 0;
@@ -1513,14 +1521,13 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     updateConnectionNodes(nodeId);
   };
 
-  const removeReroutePoint = (ele: Element): void => {
-    const parentElement = ele.parentElement!;
-    const nodeId = parentElement.classList[2].slice(9);
-    const nodeUpdateIn = parentElement.classList[1].slice(8);
-    const outputClass = parentElement.classList[3];
-    const inputClass = parentElement.classList[4];
-
-    let numberPointPosition = Array.from(parentElement.children).indexOf(ele);
+  const removeReroutePoint = (id: string): void => {
+    const selectedPoint = getSelectedPointElement();
+    const nodeId = selectedPoint.props.outputId;
+    const nodeUpdateIn = selectedPoint.props.inputId;
+    const outputClass = selectedPoint.props.outputClass;
+    const inputClass = selectedPoint.props.inputClass;
+    let numberPointPosition = selectedPoint.props.points.indexOf(id) - 1;
     const searchConnection = drawflow[module].data[nodeId].outputs[
       outputClass
     ].connections.findIndex(
@@ -1529,21 +1536,20 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     );
 
     if (shouldRerouteFixCurvature) {
-      const numberMainPath =
-        parentElement.querySelectorAll(".main-path").length;
-      parentElement.children[numberMainPath - 1].remove();
-      numberPointPosition -= numberMainPath;
-      if (numberPointPosition < 0) {
-        numberPointPosition = 0;
-      }
-    } else {
-      numberPointPosition--;
+      selectedPoint.setProps("paths", [
+        ...selectedPoint.props.paths.slice(0, -1),
+      ]);
     }
+    // remove prop with id "id"
+    selectedPoint.setProps("points", [
+      ...selectedPoint.props.points.filter(
+        (point: PointProps) => point.id !== id
+      ),
+    ]);
     drawflow[module].data[nodeId].outputs[outputClass].connections[
       searchConnection
     ].points!.splice(numberPointPosition, 1);
 
-    ele.remove();
     dispatch("removeReroute", nodeId);
     updateConnectionNodes(nodeId);
   };
@@ -1659,7 +1665,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                   {(output) => <div class={`output ${output}`} />}
                 </For>
               </div>
-              <Show when={nodeProps.hasDeleteBox}>
+              <Show when={nodeProps.hasDeleteBox} keyed>
                 <DeleteBox />
               </Show>
             </div>
@@ -2368,7 +2374,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       onKeyDown={key}
       onWheel={onZoom}
       onInput={updateNodeValue}
-      onDblClick={onDoubleClick}
       ref={container!}
     >
       <div
@@ -2393,6 +2398,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               {...connection.props}
               onMainPathClick={onMainPathClick}
               onMainPathDoubleClick={createReroutePoint}
+              onPointClick={onPointClick}
+              onPointDoubleClick={removeReroutePoint}
             />
           )}
         </For>
