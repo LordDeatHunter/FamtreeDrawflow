@@ -10,6 +10,7 @@ import {
   DrawflowOutputConnection,
   DrawflowOutputs,
   EventListeners,
+  NodeConnection,
   NodeConnectionProps,
   PathProps,
   PointProps,
@@ -26,20 +27,24 @@ interface DrawflowProps {
 
 const Drawflow: Component<DrawflowProps> = (props) => {
   const [nodeElements, setNodeElements] = createSignal<Record<string, any>>({});
-  const [nodeConnections, setNodeConnections] = createSignal<any[]>([]);
+  const [nodeConnections, setNodeConnections] = createSignal<NodeConnection[]>(
+    []
+  );
   const [precanvasTransform, setPrecanvasTransform] = createSignal<string>("");
-  const getConnectionElement = () => nodeConnections().slice(-1)[0];
+  const getCurrentConnectionElement = () => nodeConnections().slice(-1)[0];
   const getSelectedConnectionElement = () =>
     nodeConnections().find((connection) => !!connection.props.pathSelected);
   const getSelectedPointElement = () =>
-    nodeConnections().find(
-      (connection) =>
-        !!connection.props.points.some((point: PointProps) => !!point.selected)
+    nodeConnections().find((connection) =>
+      connection.props.points.some((point) => !!point.selected)
     );
   const getPointElement = (id: string) =>
-    nodeConnections().find(
-      (connection) =>
-        !!connection.props.points.some((point: PointProps) => id === point.id)
+    nodeConnections().find((connection) =>
+      connection.props.points.some((point) => id === point.id)
+    );
+  const getConnectionElement = (id: string) =>
+    nodeConnections().find((connection) =>
+      connection.props.paths.some((path) => id === path.id)
     );
   let events: EventListeners = {};
   let container: HTMLDivElement;
@@ -49,7 +54,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   let selectedNode: HTMLElement | null = null;
   let drag: boolean = false;
   let reroute: boolean = false;
-  let shouldRerouteFixCurvature: boolean = false;
+  let shouldRerouteFixCurvature: boolean = true;
   let curvature: number = 0.5;
   let rerouteCurvatureStartEnd: number = 0.5;
   let rerouteCurvature: number = 0.5;
@@ -57,7 +62,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   let dragPoint: boolean = false;
   let isEditorSelected: boolean = false;
   let connection: boolean = false;
-  let selectedConnection: SVGPathElement | null = null;
   let canvasX: number = 0;
   let canvasY: number = 0;
   let positionX: number = 0;
@@ -151,12 +155,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const removeRerouteConnectionSelected = () => {
-    selectedConnection?.classList.remove("selected");
-    if (getSelectedConnectionElement()) {
+    const selectedElement = getSelectedConnectionElement();
+    if (selectedElement) {
       dispatch("connectionUnselected", true);
-      getSelectedConnectionElement().setProps("pathSelected", false);
+      selectedElement.setProps("pathSelected", false);
     }
-    selectedConnection = null;
   };
 
   const onDrawflowNodeClick = (e: MouseEvent | TouchEvent) => {
@@ -212,23 +215,25 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   const onMainPathClick = (id: string): void => {
     unselectNode();
     removeRerouteConnectionSelected();
-    selectedConnection = selectedElement as unknown as SVGPathElement;
-    selectedConnection?.classList.add("selected");
-    const classListConnection = selectedConnection?.parentElement!.classList;
-    getConnectionElement().setProps("pathSelected", true);
-    if (classListConnection?.length > 1) {
-      dispatch("connectionSelected", {
-        outputId: classListConnection[2].slice(9),
-        inputId: classListConnection[1].slice(8),
-        outputClass: classListConnection[3],
-        inputClass: classListConnection[4],
-      });
+    const connectionElement = getConnectionElement(id);
+    if (!connectionElement) {
+      return;
     }
+    connectionElement.setProps("pathSelected", true);
+    dispatch("connectionSelected", {
+      outputId: connectionElement.props.outputId,
+      inputId: connectionElement.props.inputId,
+      outputClass: connectionElement.props.outputClass,
+      inputClass: connectionElement.props.inputClass,
+    });
   };
 
   const onPointClick = (id: string) => {
     dragPoint = true;
     const pointElement = getPointElement(id);
+    if (!pointElement) {
+      return;
+    }
     pointElement.setProps(
       "points",
       pointElement.props.points.map((point: PointProps) => ({
@@ -243,9 +248,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       removeNodeId(selectedNode.id);
     }
 
-    if (selectedConnection) {
-      removeConnection();
-    }
+    removeConnection();
 
     if (selectedNode != null) {
       selectedNode.classList.remove("selected");
@@ -410,10 +413,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         precanvas.getBoundingClientRect().y *
           (precanvas.clientHeight / (precanvas.clientHeight * zoom));
 
-      const pointElement = getSelectedPointElement();
+      const pointElement = getSelectedPointElement()!;
       const selectedPoint = pointElement.props.points.find(
         (point: PointProps) => !!point?.selected
-      );
+      )!;
       pointElement.setProps(
         "points",
         pointElement.props.points.map((point: PointProps) => {
@@ -439,7 +442,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
       drawflow[module].data[nodeId].outputs[outputClass].connections[
         searchConnection
-      ].points![pointElement.props.points.indexOf(selectedPoint.id) - 1] = {
+      ].points![pointElement.props.points.indexOf(selectedPoint) - 1] = {
         positionX: draggedPositionX,
         positionY: draggedPositionY,
       };
@@ -483,7 +486,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         startPositionX != eventPositionX ||
         startPositionY != eventPositionY
       ) {
-        dispatch("rerouteMoved", getSelectedPointElement().props.outputId);
+        dispatch("rerouteMoved", getSelectedPointElement()?.props.outputId);
       }
     }
 
@@ -527,10 +530,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             ).length === 0
           ) {
             // Connection doesn't exist, save connection
-            getConnectionElement().setProps("inputId", inputId);
-            getConnectionElement().setProps("outputId", outputId);
-            getConnectionElement().setProps("inputClass", inputClass);
-            getConnectionElement().setProps("outputClass", outputClass);
+            const selectedConnection = getCurrentConnectionElement();
+            selectedConnection?.setProps("inputId", inputId);
+            selectedConnection?.setProps("outputId", outputId);
+            selectedConnection?.setProps("inputClass", inputClass);
+            selectedConnection?.setProps("outputClass", outputClass);
 
             drawflow[module].data[outputId].outputs[
               outputClass
@@ -582,11 +586,15 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       return;
     }
     contextMenuDel();
+    const selectedConnection = getSelectedConnectionElement();
     if (selectedNode) {
       nodeElements()[selectedNode.id].setProps("hasDeleteBox", true);
     } else if (selectedConnection) {
       const style: StyleType = {};
-      if (selectedConnection.parentElement!.classList.length > 1) {
+      if (
+        selectedConnection.props.inputId !== "" &&
+        selectedConnection.props.outputId !== ""
+      ) {
         style["top"] =
           e.clientY *
             (precanvas.clientHeight / (precanvas.clientHeight * zoom)) -
@@ -625,9 +633,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       ) {
         removeNodeId(selectedNode.id);
       }
-      if (selectedConnection != null) {
-        removeConnection();
-      }
+      removeConnection();
     }
   };
 
@@ -727,6 +733,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     const [props, setProps] = createStore<NodeConnectionProps>({
       paths: [],
       points: [],
+      inputId: "",
+      outputId: "",
+      inputClass: "",
+      outputClass: "",
     });
     setNodeConnections([...nodeConnections(), { props, setProps }]);
     const outputId = ele.parentElement?.parentElement?.id;
@@ -773,8 +783,8 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       curvature,
       "openclose"
     );
-    const connectionElement = getConnectionElement();
-    connectionElement.setProps("paths", [
+    const connectionElement = getCurrentConnectionElement();
+    connectionElement?.setProps("paths", [
       ...connectionElement.props.paths.slice(0, -1),
       { path: lineCurve, id: connectionElement.props.paths.slice(-1) },
     ]);
@@ -1417,7 +1427,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
   const createReroutePoint = (id: string): void => {
     // TODO: reroute check
-    const selectedConnection = getSelectedConnectionElement();
+    const selectedConnection = getSelectedConnectionElement()!;
     selectedConnection.setProps("pathSelected", false);
     const nodeId = selectedConnection.props.outputId;
     const nodeUpdateIn = selectedConnection.props.inputId;
@@ -1442,33 +1452,32 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
     let positionAddArrayPoint = 0;
     if (shouldRerouteFixCurvature) {
-      getConnectionElement().setProps("paths", [
-        ...getConnectionElement().props.paths,
+      selectedConnection.setProps("paths", [
+        ...selectedConnection.props.paths,
         { id: getUuid(), path: "" },
       ]);
-      if (getConnectionElement().props.paths.length === 2) {
-        getConnectionElement().setProps("points", [
-          ...getConnectionElement().props.points,
+      if (selectedConnection.props.paths.length === 2) {
+        selectedConnection.setProps("points", [
+          ...selectedConnection.props.points,
           point,
         ]);
       } else {
-        const searchPoint = getConnectionElement().props.paths.findIndex(
+        const searchPoint = selectedConnection.props.paths.findIndex(
           (path: PathProps) => id === path.id
         );
-        const pointList = getConnectionElement().props.points;
-        getConnectionElement().setProps("points", [
+        const pointList = selectedConnection.props.points;
+        selectedConnection.setProps("points", [
           ...pointList.slice(0, searchPoint),
           point,
           ...pointList.slice(searchPoint),
         ]);
       }
     } else {
-      getConnectionElement().setProps("points", [
-        ...getConnectionElement().props.points,
+      selectedConnection.setProps("points", [
+        ...selectedConnection.props.points,
         point,
       ]);
     }
-
     const searchConnection = drawflow[module].data[nodeId].outputs[
       outputClass
     ].connections.findIndex(
@@ -1507,7 +1516,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         });
       }
 
-      getConnectionElement().setProps("pathSelected", false);
+      getSelectedConnectionElement()?.setProps("pathSelected", false);
     } else {
       drawflow[module].data[nodeId].outputs[outputClass].connections[
         searchConnection
@@ -1522,12 +1531,15 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const removeReroutePoint = (id: string): void => {
-    const selectedPoint = getSelectedPointElement();
+    const selectedPoint = getSelectedPointElement()!;
     const nodeId = selectedPoint.props.outputId;
     const nodeUpdateIn = selectedPoint.props.inputId;
     const outputClass = selectedPoint.props.outputClass;
     const inputClass = selectedPoint.props.inputClass;
-    let numberPointPosition = selectedPoint.props.points.indexOf(id) - 1;
+    let numberPointPosition =
+      selectedPoint.props.points.findIndex(
+        (point: PointProps) => point.id === id
+      ) - 1;
     const searchConnection = drawflow[module].data[nodeId].outputs[
       outputClass
     ].connections.findIndex(
@@ -2064,37 +2076,38 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const removeConnection = () => {
-    if (selectedConnection != null) {
-      const listClass = selectedConnection.parentElement!.classList;
-      selectedConnection.parentElement!.remove();
-      const indexOut = drawflow[module].data[listClass[2].slice(9)].outputs[
-        listClass[3]
-      ].connections.findIndex(
-        (item, i) =>
-          item.node === listClass[1].slice(8) && item.output === listClass[4]
-      );
-      drawflow[module].data[listClass[2].slice(9)].outputs[
-        listClass[3]
-      ].connections.splice(indexOut, 1);
-
-      const indexIn = drawflow[module].data[listClass[1].slice(8)].inputs[
-        listClass[4]
-      ].connections.findIndex(
-        (item, i) =>
-          item.node === listClass[2].slice(9) && item.input === listClass[3]
-      );
-      drawflow[module].data[listClass[1].slice(8)].inputs[
-        listClass[4]
-      ].connections.splice(indexIn, 1);
-
-      dispatch("connectionRemoved", {
-        outputId: listClass[2].slice(9),
-        inputId: listClass[1].slice(8),
-        outputClass: listClass[3],
-        inputClass: listClass[4],
-      });
-      selectedConnection = null;
+    const selectedConnection = getSelectedConnectionElement();
+    if (!selectedConnection) {
+      return;
     }
+    const outputId = selectedConnection.props.outputId;
+    const inputId = selectedConnection.props.inputId;
+    const outputClass = selectedConnection.props.outputClass;
+    const inputClass = selectedConnection.props.inputClass;
+    const indexOut = drawflow[module].data[outputId].outputs[
+      outputClass
+    ].connections.findIndex(
+      (item, i) => item.node === inputId && item.output === inputClass
+    );
+    drawflow[module].data[outputId].outputs[outputClass].connections.splice(
+      indexOut,
+      1
+    );
+    const indexIn = drawflow[module].data[inputId].inputs[
+      inputClass
+    ].connections.findIndex(
+      (item, i) => item.node === outputId && item.input === outputClass
+    );
+    drawflow[module].data[inputId].inputs[inputClass].connections.splice(
+      indexIn,
+      1
+    );
+    dispatch("connectionRemoved", {
+      outputId,
+      inputId,
+      outputClass,
+      inputClass,
+    });
   };
 
   const removeSingleConnection = (

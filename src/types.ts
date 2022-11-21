@@ -77,14 +77,19 @@ export interface DrawflowModuleData {
   };
 }
 
+export interface NodeConnection {
+  props: NodeConnectionProps;
+  setProps: (key: string, value: any) => void;
+}
+
 export interface NodeConnectionProps {
-  points?: PointProps[];
-  paths?: PathProps[];
+  points: PointProps[];
+  paths: PathProps[];
   pathSelected?: boolean;
-  inputId?: string;
-  outputId?: string;
-  inputClass?: string;
-  outputClass?: string;
+  inputId: string;
+  outputId: string;
+  inputClass: string;
+  outputClass: string;
 }
 
 export interface PathProps {
