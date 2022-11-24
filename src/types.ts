@@ -90,6 +90,7 @@ export interface NodeConnectionProps {
   outputId: string;
   inputClass: string;
   outputClass: string;
+  id: string;
 }
 
 export interface PathProps {

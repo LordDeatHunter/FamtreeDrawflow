@@ -9,7 +9,7 @@ const DeleteBox: Component<DeleteBoxProps> = (props) => {
   const { onClick = () => undefined, style = {} } = props;
   return (
     <div class="drawflow-delete" style={style} onClick={onClick}>
-      x
+      🗙
     </div>
   );
 };

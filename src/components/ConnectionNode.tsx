@@ -13,6 +13,8 @@ export interface ConnectionNodeProps {
   outputId: string;
   inputClass: string;
   outputClass: string;
+  // TODO: propagate id through methods
+  id: string;
 }
 
 const ConnectionNode: Component<ConnectionNodeProps> = (props) => {

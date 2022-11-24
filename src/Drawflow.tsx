@@ -49,7 +49,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   let events: EventListeners = {};
   let container: HTMLDivElement;
   let precanvas: HTMLDivElement;
-  let [deleteBoxProps, setDeleteBoxProps] = createSignal<{ style?: any }>({});
+  let [deleteBoxProps, setDeleteBoxProps] = createSignal<{
+    style?: any;
+    onClick?: () => void;
+  }>({});
   let selectedElement: HTMLElement | null = null;
   let selectedNode: HTMLElement | null = null;
   let drag: boolean = false;
@@ -230,32 +233,16 @@ const Drawflow: Component<DrawflowProps> = (props) => {
 
   const onPointClick = (id: string) => {
     dragPoint = true;
-    const pointElement = getPointElement(id);
-    if (!pointElement) {
-      return;
-    }
-    pointElement.setProps(
-      "points",
-      pointElement.props.points.map((point: PointProps) => ({
-        ...point,
-        selected: point.id === id,
-      }))
-    );
-  };
-
-  const onDrawflowDeleteClick = (e: MouseEvent | TouchEvent) => {
-    if (selectedNode) {
-      removeNodeId(selectedNode.id);
-    }
-
-    removeConnection();
-
-    if (selectedNode != null) {
-      selectedNode.classList.remove("selected");
-      selectedNode = null;
-      dispatch("nodeUnselected", true);
-    }
-    removeRerouteConnectionSelected();
+    const nodes = [...nodeConnections()];
+    nodes.forEach((node) => {
+      node.setProps(
+        "points",
+        node.props.points.map((point: PointProps) => ({
+          ...point,
+          selected: point.id === id,
+        }))
+      );
+    });
   };
 
   const click = (e: MouseEvent | TouchEvent) => {
@@ -292,10 +279,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     } else {
       firstClick = target;
       selectedElement = target;
-      // TODO: is this necessary?
-      if ("button" in e && e.button === 0) {
-        contextMenuDel();
-      }
 
       if (target.closest(".drawflow_content_node") != null) {
         selectedElement = target.closest(
@@ -323,10 +306,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       }
       case "drawflow": {
         onDrawflowClick(e);
-        break;
-      }
-      case "drawflow-delete": {
-        onDrawflowDeleteClick(e);
         break;
       }
     }
@@ -585,33 +564,49 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     if (editorMode === "fixed" || editorMode === "view") {
       return;
     }
-    contextMenuDel();
+    resetContextMenu();
     const selectedConnection = getSelectedConnectionElement();
+    const selectedPointId = getSelectedPointElement()?.props.points.find(
+      (point) => point.selected
+    )?.id;
     if (selectedNode) {
       nodeElements()[selectedNode.id].setProps("hasDeleteBox", true);
-    } else if (selectedConnection) {
-      const style: StyleType = {};
-      if (
+    } else if (
+      (selectedConnection &&
         selectedConnection.props.inputId !== "" &&
-        selectedConnection.props.outputId !== ""
-      ) {
-        style["top"] =
-          e.clientY *
-            (precanvas.clientHeight / (precanvas.clientHeight * zoom)) -
-          precanvas.getBoundingClientRect().y *
-            (precanvas.clientHeight / (precanvas.clientHeight * zoom)) +
-          "px";
-        style["left"] =
-          e.clientX * (precanvas.clientWidth / (precanvas.clientWidth * zoom)) -
-          precanvas.getBoundingClientRect().x *
-            (precanvas.clientWidth / (precanvas.clientWidth * zoom)) +
-          "px";
+        selectedConnection.props.outputId !== "") ||
+      selectedPointId
+    ) {
+      const style: StyleType = {};
+      style.top = `${
+        e.clientY * (precanvas.clientHeight / (precanvas.clientHeight * zoom)) -
+        precanvas.getBoundingClientRect().y *
+          (precanvas.clientHeight / (precanvas.clientHeight * zoom))
+      }px`;
+      style.left = `${
+        e.clientX * (precanvas.clientWidth / (precanvas.clientWidth * zoom)) -
+        precanvas.getBoundingClientRect().x *
+          (precanvas.clientWidth / (precanvas.clientWidth * zoom))
+      }px`;
+      let onClick: (() => void) | undefined = undefined;
+      if (selectedPointId) {
+        onClick = () => removeReroutePoint(selectedPointId);
+      } else if (selectedConnection) {
+        onClick = () => removeConnection(selectedConnection.props.id);
       }
-      setDeleteBoxProps({ style });
+      if (onClick) {
+        setDeleteBoxProps({
+          style,
+          onClick: () => {
+            onClick!();
+            setDeleteBoxProps({});
+          },
+        });
+      }
     }
   };
 
-  const contextMenuDel = (): void => {
+  const resetContextMenu = (): void => {
     if (selectedNode) {
       nodeElements()[selectedNode.id].setProps("hasDeleteBox", false);
     }
@@ -737,6 +732,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       outputId: "",
       inputClass: "",
       outputClass: "",
+      id: getUuid(),
     });
     setNodeConnections([...nodeConnections(), { props, setProps }]);
     const outputId = ele.parentElement?.parentElement?.id;
@@ -828,6 +824,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
         outputId,
         inputClass,
         outputClass,
+        id: getUuid(),
       });
       setNodeConnections([...nodeConnections(), { props, setProps }]);
 
@@ -1531,13 +1528,16 @@ const Drawflow: Component<DrawflowProps> = (props) => {
   };
 
   const removeReroutePoint = (id: string): void => {
-    const selectedPoint = getSelectedPointElement()!;
-    const nodeId = selectedPoint.props.outputId;
-    const nodeUpdateIn = selectedPoint.props.inputId;
-    const outputClass = selectedPoint.props.outputClass;
-    const inputClass = selectedPoint.props.inputClass;
+    const connection = nodeConnections().find((item) =>
+      item.props.points.some((point) => point.id === id)
+    );
+    if (!connection) return;
+    const nodeId = connection.props.outputId;
+    const nodeUpdateIn = connection.props.inputId;
+    const outputClass = connection.props.outputClass;
+    const inputClass = connection.props.inputClass;
     let numberPointPosition =
-      selectedPoint.props.points.findIndex(
+      connection.props.points.findIndex(
         (point: PointProps) => point.id === id
       ) - 1;
     const searchConnection = drawflow[module].data[nodeId].outputs[
@@ -1548,15 +1548,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     );
 
     if (shouldRerouteFixCurvature) {
-      selectedPoint.setProps("paths", [
-        ...selectedPoint.props.paths.slice(0, -1),
-      ]);
+      connection.setProps("paths", [...connection.props.paths.slice(0, -1)]);
     }
     // remove prop with id "id"
-    selectedPoint.setProps("points", [
-      ...selectedPoint.props.points.filter(
-        (point: PointProps) => point.id !== id
-      ),
+    connection.setProps("points", [
+      ...connection.props.points.filter((point: PointProps) => point.id !== id),
     ]);
     drawflow[module].data[nodeId].outputs[outputClass].connections[
       searchConnection
@@ -1650,6 +1646,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       classList,
       id: newNodeId,
       hasDeleteBox: false,
+      onDeleteBoxClick: () => removeNodeId(newNodeId),
     });
     setNodeElements({
       ...nodeElements(),
@@ -1678,7 +1675,7 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 </For>
               </div>
               <Show when={nodeProps.hasDeleteBox} keyed>
-                <DeleteBox />
+                <DeleteBox onClick={nodeProps.onDeleteBoxClick} />
               </Show>
             </div>
           </div>
@@ -2075,11 +2072,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     dispatch("nodeRemoved", id);
   };
 
-  const removeConnection = () => {
-    const selectedConnection = getSelectedConnectionElement();
-    if (!selectedConnection) {
-      return;
-    }
+  const removeConnection = (id?: string) => {
+    const selectedConnection = id
+      ? nodeConnections().find((item) => item.props.id === id)
+      : getSelectedConnectionElement();
+    if (!selectedConnection) return;
     const outputId = selectedConnection.props.outputId;
     const inputId = selectedConnection.props.inputId;
     const outputClass = selectedConnection.props.outputClass;
@@ -2101,6 +2098,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     drawflow[module].data[inputId].inputs[inputClass].connections.splice(
       indexIn,
       1
+    );
+    setNodeConnections(
+      [...nodeConnections()].filter(
+        (node) => node.props.id !== selectedConnection.props.id
+      )
     );
     dispatch("connectionRemoved", {
       outputId,
@@ -2417,7 +2419,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
           )}
         </For>
         <Show when={Object.keys(deleteBoxProps()).length > 0} keyed>
-          <DeleteBox style={deleteBoxProps().style} />
+          <DeleteBox
+            style={deleteBoxProps().style}
+            onClick={deleteBoxProps().onClick}
+          />
         </Show>
       </div>
     </div>

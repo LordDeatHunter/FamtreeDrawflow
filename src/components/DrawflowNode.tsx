@@ -9,8 +9,10 @@ interface DrawflowNodeProps {
   classList: string;
   id: string;
   ContentNodeComponent: Component;
+  onDeleteBoxClick: () => void;
 }
 
+// TODO: use this in Drawflow.tsx
 const DrawflowNode: Component<DrawflowNodeProps> = (props) => {
   const {
     inputs,
@@ -45,8 +47,8 @@ const DrawflowNode: Component<DrawflowNodeProps> = (props) => {
           {(i) => <div class={`output output_${i + 1}`} />}
         </For>
       </div>
-      <Show when={hasDeleteBox()}>
-        <DeleteBox />
+      <Show when={hasDeleteBox()} keyed>
+        <DeleteBox onClick={props.onDeleteBoxClick} />
       </Show>
     </div>
   );
