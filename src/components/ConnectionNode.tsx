@@ -52,6 +52,7 @@ const ConnectionNode: Component<ConnectionNodeProps> = (props) => {
       <For each={props?.points ?? []}>
         {(point) => (
           <circle
+            ref={point.ref}
             onMouseDown={(e) => {
               if (e.detail === 2 && e.button === 0) {
                 onPointDoubleClick(point.id);

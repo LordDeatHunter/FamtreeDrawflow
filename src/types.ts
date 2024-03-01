@@ -82,6 +82,21 @@ export interface NodeConnection {
   setProps: (key: string, value: any) => void;
 }
 
+export interface NodeElementProps {
+  inputs: Record<string, InputOutputProps>;
+  outputs: Record<string, InputOutputProps>;
+  positionX: number;
+  positionY: number;
+  classList: string;
+  id: string;
+  hasDeleteBox: boolean;
+  onDeleteBoxClick: () => void;
+}
+
+export interface InputOutputProps {
+  ref?: HTMLDivElement;
+}
+
 export interface NodeConnectionProps {
   points: PointProps[];
   paths: PathProps[];
@@ -104,6 +119,7 @@ export interface PointProps {
   cx: number;
   cy: number;
   r: number;
+  ref: SVGCircleElement;
 }
 
 export type StyleType = Record<string, string | number | undefined>;

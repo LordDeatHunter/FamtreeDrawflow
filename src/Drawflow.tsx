@@ -10,8 +10,10 @@ import {
   DrawflowOutputConnection,
   DrawflowOutputs,
   EventListeners,
+  InputOutputProps,
   NodeConnection,
   NodeConnectionProps,
+  NodeElementProps,
   PathProps,
   PointProps,
   StyleType,
@@ -20,6 +22,7 @@ import DeleteBox from "./components/DeleteBox";
 import "./drawflow.css";
 import { createStore } from "solid-js/store";
 import ConnectionNode from "./components/ConnectionNode";
+import DrawflowNode from "./components/DrawflowNode";
 
 interface DrawflowProps {
   drawflowCallbacks?: (callbacks: DrawflowCallbacks) => void;
@@ -849,19 +852,32 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       precanvas.clientHeight / (precanvas.clientHeight * zoom);
     precanvasHeightZoom = precanvasHeightZoom || 0;
 
-    const elemsOut = container.querySelectorAll(`.${idSearchOut}`);
+    const outputElements = nodeConnections().filter(
+      (connection) => connection.props.outputId === id
+    );
 
-    Object.keys(elemsOut).map((item, i) => {
-      const elem = elemsOut[Number(item)];
-      if (elem.querySelector(".point") === null) {
+    outputElements.forEach((outputConnection) => {
+      if (outputConnection.props.points.length > 0) {
         const elementSearchIdOut = nodeElements()[id].node;
 
-        const searchId = elem.classList[1].replace("node_in_", "");
-        const searchIdElement = nodeElements()[searchId].node;
-
-        const elementSearch = searchIdElement!.querySelectorAll(
-          `.${elem.classList[4]}`
-        )[0] as HTMLElement;
+        const searchId = outputConnection.props.inputId;
+        console.log(outputConnection.props.inputClass);
+        console.log(nodeElements()[searchId].props);
+        console.log(
+          nodeElements()[searchId].props.inputs[
+            outputConnection.props.inputClass
+          ].node
+        );
+        console.log(
+          nodeElements()[searchId].props.inputs[
+            outputConnection.props.inputClass
+          ]
+        );
+        console.log(nodeElements()[searchId].props.inputs);
+        const elementSearch =
+          nodeElements()[searchId].props.inputs[
+            outputConnection.props.inputClass
+          ].ref;
 
         const eX =
           elementSearch.offsetWidth / 2 +
@@ -874,9 +890,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
             precanvas.getBoundingClientRect().y) *
             precanvasHeightZoom;
 
-        const elementSearchOut = elementSearchIdOut!.querySelectorAll(
-          `.${elem.classList[3]}`
-        )[0] as HTMLElement;
+        const elementSearchOut =
+          nodeElements()[searchId].props.outputs[
+            outputConnection.props.outputClass
+          ].ref;
 
         const lineX =
           elementSearchOut.offsetWidth / 2 +
@@ -897,17 +914,19 @@ const Drawflow: Component<DrawflowProps> = (props) => {
           curvature,
           "openclose"
         );
-        elem.children[0].setAttributeNS(null, "d", lineCurve);
+        outputConnection.setProps("paths", [
+          { ...outputConnection.props.paths[0], path: lineCurve },
+          ...outputConnection.props.paths.slice(1),
+        ]);
       } else {
-        const points = elem.querySelectorAll(".point");
-        let linecurve = "";
+        const points = outputConnection.props.points;
         const rerouteFix: string[] = [];
-        points.forEach((point: Element, i: number) => {
+        points.forEach((point, i: number) => {
           let elementSearchOut;
           let elementSearch;
           if (i === 0) {
             let elementSearchIdOut = nodeElements()[id].node;
-            elementSearch = point;
+            elementSearch = point.ref;
 
             let eX =
               (elementSearch.getBoundingClientRect().x -
@@ -942,7 +961,6 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               rerouteCurvatureStartEnd,
               "open"
             );
-            linecurve += lineCurveSearch;
             rerouteFix.push(lineCurveSearch);
             if (points.length - 1 === 0) {
               elementSearchIdOut = point;
@@ -985,11 +1003,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 rerouteCurvatureStartEnd,
                 "close"
               );
-              linecurve += lineCurveSearch;
               rerouteFix.push(lineCurveSearch);
             } else {
               elementSearchIdOut = point;
-              elementSearch = points[i + 1];
+              elementSearch = points[i + 1].ref;
 
               eX =
                 (elementSearch.getBoundingClientRect().x -
@@ -1020,11 +1037,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
                 rerouteCurvature,
                 "other"
               );
-              linecurve += lineCurveSearch;
               rerouteFix.push(lineCurveSearch);
             }
           } else if (i === points.length - 1) {
-            const elementSearchIdOut = point;
+            const elementSearchIdOut = point.ref;
 
             const searchId =
               elementSearchIdOut.parentElement!.classList[1].replace(
@@ -1065,11 +1081,10 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               rerouteCurvatureStartEnd,
               "close"
             );
-            linecurve += lineCurveSearch;
             rerouteFix.push(lineCurveSearch);
           } else {
-            const elementSearchIdOut = point;
-            elementSearch = points[i + 1];
+            const elementSearchIdOut = point.ref;
+            elementSearch = points[i + 1].ref;
 
             let eX =
               (elementSearch.getBoundingClientRect().x -
@@ -1100,17 +1115,17 @@ const Drawflow: Component<DrawflowProps> = (props) => {
               rerouteCurvature,
               "other"
             );
-            linecurve += lineCurveSearch;
             rerouteFix.push(lineCurveSearch);
           }
         });
-        if (shouldRerouteFixCurvature) {
-          rerouteFix.forEach((itempath, i) => {
-            elem.children[i].setAttributeNS(null, "d", itempath);
-          });
-        } else {
-          elem.children[0].setAttributeNS(null, "d", linecurve);
-        }
+        const lineCurve = rerouteFix.join("");
+        outputConnection.setProps(
+          "paths",
+          [...outputConnection.props.paths].map((path, i) => ({
+            ...path,
+            path: shouldRerouteFixCurvature ? rerouteFix[i] : lineCurve,
+          }))
+        );
       }
     });
 
@@ -1630,17 +1645,23 @@ const Drawflow: Component<DrawflowProps> = (props) => {
     // }
 
     const inputElements: DrawflowInputs = {};
+    const inputProps: Record<string, InputOutputProps> = {};
     for (let x = 0; x < inputs; ++x) {
-      inputElements[`input_${getUuid()}`] = { connections: [] };
+      const id = `input_${getUuid()}`;
+      inputElements[id] = { connections: [] };
+      inputProps[id] = {};
     }
     const outputElements: DrawflowOutputs = {};
+    const outputProps: Record<string, InputOutputProps> = {};
     for (let x = 0; x < outputs; x++) {
-      outputElements[`output_${getUuid()}`] = { connections: [] };
+      const id = `output_${getUuid()}`;
+      outputElements[id] = { connections: [] };
+      outputProps[id] = {};
     }
 
-    const [nodeProps, setNodeProps] = createStore<any>({
-      inputs: Object.keys(inputElements),
-      outputs: Object.keys(outputElements),
+    const [nodeProps, setNodeProps] = createStore<NodeElementProps>({
+      inputs: inputProps,
+      outputs: outputProps,
       positionX: nodePositionX,
       positionY: nodePositionY,
       classList,
@@ -1653,31 +1674,11 @@ const Drawflow: Component<DrawflowProps> = (props) => {
       [newNodeId]: {
         node: (
           <div class="parent-node">
-            <div
-              id={nodeProps.id}
-              class="drawflow-node"
-              style={{
-                left: `${nodeProps.positionX}px`,
-                top: `${nodeProps.positionY}px`,
-              }}
-            >
-              <div class="inputs">
-                <For each={nodeProps.inputs}>
-                  {(input) => <div class={`input ${input}`} />}
-                </For>
-              </div>
-              <div class="drawflow_content_node">
-                <ContentNodeComponent {...nodeProps} />
-              </div>
-              <div class="outputs">
-                <For each={nodeProps.outputs}>
-                  {(output) => <div class={`output ${output}`} />}
-                </For>
-              </div>
-              <Show when={nodeProps.hasDeleteBox} keyed>
-                <DeleteBox onClick={nodeProps.onDeleteBoxClick} />
-              </Show>
-            </div>
+            <DrawflowNode
+              {...nodeProps}
+              ContentNodeComponent={ContentNodeComponent}
+              setProps={setNodeProps}
+            />
           </div>
         ),
         props: nodeProps,
